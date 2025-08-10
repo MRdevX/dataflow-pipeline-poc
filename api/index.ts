@@ -1,8 +1,7 @@
 import { serve } from "@hono/node-server";
 import { createClient } from "@supabase/supabase-js";
 import { Hono } from "hono";
-
-// import { quickAddJob } from "graphile-worker";
+import { makeWorkerUtils } from "graphile-worker";
 import { ImportRequest, ImportResponse } from "./types";
 
 const app = new Hono();
@@ -15,14 +14,21 @@ app.post("/import", async (c) => {
   const body: ImportRequest = (await c.req.json()) as ImportRequest;
   const { source, data } = body;
 
-  const jobId = Date.now();
+  const jobId = Date.now().toString();
 
   const fileName = `import-${jobId}.json`;
   await supabase.storage.from("imports").upload(fileName, JSON.stringify(data), {
     contentType: "application/json",
   });
 
-  // TODO: Graphile Worker
+  const workerUtils = await makeWorkerUtils({
+    connectionString,
+  });
+
+  await workerUtils.addJob("processImport", {
+    jobId,
+    source,
+  });
 
   const response: ImportResponse = { jobId };
   return c.json(response, 200);

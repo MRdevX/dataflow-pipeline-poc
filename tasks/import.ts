@@ -1,34 +1,31 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Task } from "graphile-worker";
 
-interface ImportJobPayload {
-	jobId: string;
-	source: string;
+export interface ImportJobPayload {
+  jobId: string;
+  source: string;
 }
 
 interface Contact {
-	name: string;
-	email: string;
-	source: string;
+  name: string;
+  email: string;
+  source: string;
 }
 
 interface ProcessedContact {
-	id: string;
-	name: string;
-	email: string;
-	source: string;
-	imported_at: string;
+  id: string;
+  name: string;
+  email: string;
+  source: string;
+  imported_at: string;
 }
 
-const supabase = createClient(
-	process.env.SUPABASE_URL!,
-	process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
+const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 
 const processImportJob: Task = async (payload, { logger }) => {
-	const { jobId, source } = payload as ImportJobPayload;
+  const { jobId, source } = payload as ImportJobPayload;
 
-	logger.info(`Starting import job ${jobId} from source: ${source}`);
+  logger.info(`Starting import job ${jobId} from source: ${source}`);
 };
 
 export default processImportJob;
