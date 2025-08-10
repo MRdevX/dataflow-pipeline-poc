@@ -31,8 +31,8 @@ export const config: Config = {
     serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   },
   worker: {
-    concurrency: 5,
-    pollInterval: 1000,
+    concurrency: 10,
+    pollInterval: 500,
   },
   upload: {
     chunkSize: parseInt(process.env.UPLOAD_CHUNK_SIZE || "6291456"), // 6MB default
