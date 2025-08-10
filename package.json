@@ -19,9 +19,11 @@
 	"license": "MIT",
 	"dependencies": {
 		"@hono/node-server": "1.18.1",
+		"@hono/zod-validator": "^0.7.2",
 		"@supabase/supabase-js": "2.54.0",
 		"graphile-worker": "0.16.6",
-		"hono": "4.9.0"
+		"hono": "4.9.0",
+		"zod": "^4.0.17"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.1.4",
