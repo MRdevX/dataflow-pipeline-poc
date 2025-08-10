@@ -1,0 +1,45 @@
+import { createClient } from "@supabase/supabase-js";
+import { config } from "../config/index.js";
+
+const supabase = createClient(
+	config.supabase.url,
+	config.supabase.serviceRoleKey,
+);
+
+export class StorageRepository {
+	async uploadFile(fileName: string, data: string): Promise<void> {
+		const { error } = await supabase.storage
+			.from("imports")
+			.upload(fileName, data, {
+				contentType: "application/json",
+			});
+
+		if (error) {
+			throw new Error(`Failed to upload file: ${error.message}`);
+		}
+	}
+
+	async downloadFile(fileName: string): Promise<string> {
+		const { data, error } = await supabase.storage
+			.from("imports")
+			.download(fileName);
+
+		if (error) {
+			throw new Error(`Failed to download file: ${error.message}`);
+		}
+
+		if (!data) {
+			throw new Error("File not found");
+		}
+
+		return await data.text();
+	}
+
+	async deleteFile(fileName: string): Promise<void> {
+		const { error } = await supabase.storage.from("imports").remove([fileName]);
+
+		if (error) {
+			throw new Error(`Failed to delete file: ${error.message}`);
+		}
+	}
+}

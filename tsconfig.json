@@ -16,6 +16,6 @@
 			"@/*": ["./*"]
 		}
 	},
-	"include": ["**/*.ts", "**/*.tsx", "tasks/import.js"],
+	"include": ["src/**/*.ts", "src/**/*.tsx"],
 	"exclude": ["node_modules", "dist"]
 }
