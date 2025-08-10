@@ -1,6 +1,18 @@
 import { config } from "../config/index.js";
 import { BaseHttpClient } from "./base-http.client.js";
 
+export interface PostgRESTSelectOptions {
+  select?: string;
+  filters?: Record<string, string>;
+  limit?: number;
+  offset?: number;
+  orderBy?: string;
+}
+
+const POSTGREST_HEADERS = {
+  PREFER_REPRESENTATION: "return=representation",
+} as const;
+
 export class PostgRESTClient extends BaseHttpClient {
   constructor() {
     super(`${config.supabase.url}/rest/v1`);
@@ -9,7 +21,7 @@ export class PostgRESTClient extends BaseHttpClient {
   async insert<T>(table: string, data: T | T[]): Promise<T[]> {
     const endpoint = `/${table}`;
     const headers = {
-      Prefer: "return=representation",
+      Prefer: POSTGREST_HEADERS.PREFER_REPRESENTATION,
     };
 
     const response = await this.makeRequest(endpoint, {
@@ -21,19 +33,8 @@ export class PostgRESTClient extends BaseHttpClient {
     return response.json();
   }
 
-  async select<T>(
-    table: string,
-    options: {
-      select?: string;
-      filters?: Record<string, string>;
-      limit?: number;
-      offset?: number;
-      orderBy?: string;
-    } = {}
-  ): Promise<T[]> {
+  async select<T>(table: string, options: PostgRESTSelectOptions = {}): Promise<T[]> {
     const { select, filters, limit, offset, orderBy } = options;
-
-    let endpoint = `/${table}`;
     const params = new URLSearchParams();
 
     if (select) {
@@ -58,9 +59,8 @@ export class PostgRESTClient extends BaseHttpClient {
       params.append("order", orderBy);
     }
 
-    if (params.toString()) {
-      endpoint += `?${params.toString()}`;
-    }
+    const queryString = params.toString();
+    const endpoint = `/${table}${queryString ? `?${queryString}` : ""}`;
 
     const response = await this.makeRequest(endpoint, {
       method: "GET",
