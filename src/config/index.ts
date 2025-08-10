@@ -7,9 +7,7 @@ const envSchema = z.object({
 	NODE_ENV: z.enum(["development", "production"]).default("development"),
 	DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
 	SUPABASE_URL: z.url().min(1, "SUPABASE_URL is required"),
-	SUPABASE_SERVICE_ROLE_KEY: z
-		.string()
-		.min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
+	SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
 	UPLOAD_CHUNK_SIZE: z.coerce.number().int().positive().default(6291456),
 	UPLOAD_CACHE_CONTROL: z.string().default("3600"),
 	UPLOAD_DEFAULT_CONTENT_TYPE: z.string().default("application/octet-stream"),
