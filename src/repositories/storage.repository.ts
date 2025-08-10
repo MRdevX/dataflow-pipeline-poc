@@ -1,45 +1,39 @@
 import { createClient } from "@supabase/supabase-js";
 import { config } from "../config/index.js";
+import { STORAGE_BUCKETS, CONTENT_TYPES } from "../constants/storage.constants.js";
 
-const supabase = createClient(
-	config.supabase.url,
-	config.supabase.serviceRoleKey,
-);
+const supabase = createClient(config.supabase.url, config.supabase.serviceRoleKey);
 
 export class StorageRepository {
-	async uploadFile(fileName: string, data: string): Promise<void> {
-		const { error } = await supabase.storage
-			.from("imports")
-			.upload(fileName, data, {
-				contentType: "application/json",
-			});
+  async uploadFile(fileName: string, data: string): Promise<void> {
+    const { error } = await supabase.storage.from(STORAGE_BUCKETS.IMPORTS).upload(fileName, data, {
+      contentType: CONTENT_TYPES.JSON,
+    });
 
-		if (error) {
-			throw new Error(`Failed to upload file: ${error.message}`);
-		}
-	}
+    if (error) {
+      throw new Error(`Failed to upload file: ${error.message}`);
+    }
+  }
 
-	async downloadFile(fileName: string): Promise<string> {
-		const { data, error } = await supabase.storage
-			.from("imports")
-			.download(fileName);
+  async downloadFile(fileName: string): Promise<string> {
+    const { data, error } = await supabase.storage.from(STORAGE_BUCKETS.IMPORTS).download(fileName);
 
-		if (error) {
-			throw new Error(`Failed to download file: ${error.message}`);
-		}
+    if (error) {
+      throw new Error(`Failed to download file: ${error.message}`);
+    }
 
-		if (!data) {
-			throw new Error("File not found");
-		}
+    if (!data) {
+      throw new Error("File not found");
+    }
 
-		return await data.text();
-	}
+    return await data.text();
+  }
 
-	async deleteFile(fileName: string): Promise<void> {
-		const { error } = await supabase.storage.from("imports").remove([fileName]);
+  async deleteFile(fileName: string): Promise<void> {
+    const { error } = await supabase.storage.from(STORAGE_BUCKETS.IMPORTS).remove([fileName]);
 
-		if (error) {
-			throw new Error(`Failed to delete file: ${error.message}`);
-		}
-	}
+    if (error) {
+      throw new Error(`Failed to delete file: ${error.message}`);
+    }
+  }
 }

@@ -14,9 +14,9 @@ router.post("/", zValidator("json", importRequestSchema), async (c) => {
     data: validatedData.data,
   };
 
-  const response = await importService.processImport(request);
+  const response = await importService.processImport(request, validatedData.useResumable);
 
-  console.log(`Import job created: ${response.jobId}`);
+  console.log(`Import job created: ${response.jobId} (resumable: ${validatedData.useResumable})`);
   return c.json(response, 200);
 });
 
