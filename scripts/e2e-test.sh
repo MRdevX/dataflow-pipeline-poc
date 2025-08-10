@@ -52,7 +52,7 @@ fi
 
 # Run Worker
 echo "Running worker to process job..."
-pnpm run graphile-worker:run-once
+pnpm run worker:run-once
 
 echo "Done"
 
