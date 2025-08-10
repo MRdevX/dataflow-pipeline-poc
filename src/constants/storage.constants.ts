@@ -1,7 +1,7 @@
 export const STORAGE_BUCKETS = {
-  IMPORTS: "imports",
+	IMPORTS: "imports",
 } as const;
 
 export const CONTENT_TYPES = {
-  JSON: "application/json",
+	JSON: "application/json",
 } as const;

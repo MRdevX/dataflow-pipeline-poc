@@ -1,36 +1,29 @@
-import { supabase } from "../utils/supabase.client.js";
-import { STORAGE_BUCKETS, CONTENT_TYPES } from "../constants/storage.constants.js";
+import { CONTENT_TYPES, STORAGE_BUCKETS } from "../constants/storage.constants.js";
+import { handleError } from "../utils/error-handler.js";
+import { storage } from "../utils/storage.client.js";
 
 export class StorageRepository {
   async uploadFile(fileName: string, data: string): Promise<void> {
-    const { error } = await supabase.storage.from(STORAGE_BUCKETS.IMPORTS).upload(fileName, data, {
-      contentType: CONTENT_TYPES.JSON,
-    });
-
-    if (error) {
-      throw new Error(`Failed to upload file: ${error.message}`);
+    try {
+      await storage.uploadFile(STORAGE_BUCKETS.IMPORTS, fileName, data, CONTENT_TYPES.JSON);
+    } catch (error) {
+      throw handleError(error, "Failed to upload file");
     }
   }
 
   async downloadFile(fileName: string): Promise<string> {
-    const { data, error } = await supabase.storage.from(STORAGE_BUCKETS.IMPORTS).download(fileName);
-
-    if (error) {
-      throw new Error(`Failed to download file: ${error.message}`);
+    try {
+      return await storage.downloadFile(STORAGE_BUCKETS.IMPORTS, fileName);
+    } catch (error) {
+      throw handleError(error, "Failed to download file");
     }
-
-    if (!data) {
-      throw new Error("File not found");
-    }
-
-    return await data.text();
   }
 
   async deleteFile(fileName: string): Promise<void> {
-    const { error } = await supabase.storage.from(STORAGE_BUCKETS.IMPORTS).remove([fileName]);
-
-    if (error) {
-      throw new Error(`Failed to delete file: ${error.message}`);
+    try {
+      await storage.deleteFile(STORAGE_BUCKETS.IMPORTS, fileName);
+    } catch (error) {
+      throw handleError(error, "Failed to delete file");
     }
   }
 }
