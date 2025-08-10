@@ -1,8 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-import { config } from "../config/index.js";
+import { supabase } from "../utils/supabase.client.js";
 import { STORAGE_BUCKETS, CONTENT_TYPES } from "../constants/storage.constants.js";
-
-const supabase = createClient(config.supabase.url, config.supabase.serviceRoleKey);
 
 export class StorageRepository {
   async uploadFile(fileName: string, data: string): Promise<void> {
