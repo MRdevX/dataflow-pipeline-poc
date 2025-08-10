@@ -1,43 +1,47 @@
-export interface Config {
-  port: number;
-  env: "development" | "production";
-  database: {
-    url: string;
-  };
-  supabase: {
-    url: string;
-    serviceRoleKey: string;
-  };
-  worker: {
-    concurrency: number;
-    pollInterval: number;
-  };
-  upload: {
-    chunkSize: number;
-    retryDelays: number[];
-    cacheControl: string;
-    defaultContentType: string;
-  };
+import { z } from "zod";
+import "dotenv/config";
+import type { Config } from "./types";
+
+const envSchema = z.object({
+  PORT: z.coerce.number().int().positive().default(3000),
+  NODE_ENV: z.enum(["development", "production"]).default("development"),
+  DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
+  SUPABASE_URL: z.url().min(1, "SUPABASE_URL is required"),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, "SUPABASE_SERVICE_ROLE_KEY is required"),
+  UPLOAD_CHUNK_SIZE: z.coerce.number().int().positive().default(6291456),
+  UPLOAD_CACHE_CONTROL: z.string().default("3600"),
+  UPLOAD_DEFAULT_CONTENT_TYPE: z.string().default("application/octet-stream"),
+});
+
+const envParseResult = envSchema.safeParse(process.env);
+
+if (!envParseResult.success) {
+  const errorMessage = envParseResult.error.issues.map((err) => `${err.path.join(".")}: ${err.message}`).join(", ");
+  throw new Error(`Environment validation error: ${errorMessage}`);
 }
 
+const validatedEnv = envParseResult.data;
+
 export const config: Config = {
-  port: parseInt(process.env.PORT || "3000"),
-  env: (process.env.NODE_ENV as "development" | "production") || "development",
+  port: validatedEnv.PORT,
+  env: validatedEnv.NODE_ENV || "development",
   database: {
-    url: process.env.DATABASE_URL || "",
+    url: validatedEnv.DATABASE_URL,
   },
   supabase: {
-    url: process.env.SUPABASE_URL || "",
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
+    url: validatedEnv.SUPABASE_URL,
+    serviceRoleKey: validatedEnv.SUPABASE_SERVICE_ROLE_KEY,
   },
   worker: {
     concurrency: 10,
     pollInterval: 500,
   },
   upload: {
-    chunkSize: parseInt(process.env.UPLOAD_CHUNK_SIZE || "6291456"), // 6MB default
+    chunkSize: validatedEnv.UPLOAD_CHUNK_SIZE,
     retryDelays: [0, 3000, 5000, 10000, 20000],
-    cacheControl: process.env.UPLOAD_CACHE_CONTROL || "3600",
-    defaultContentType: process.env.UPLOAD_DEFAULT_CONTENT_TYPE || "application/octet-stream",
+    cacheControl: validatedEnv.UPLOAD_CACHE_CONTROL,
+    defaultContentType: validatedEnv.UPLOAD_DEFAULT_CONTENT_TYPE,
   },
 };
+
+export type { Config } from "./types";

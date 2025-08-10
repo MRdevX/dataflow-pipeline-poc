@@ -21,6 +21,7 @@
     "@hono/node-server": "1.18.1",
     "@hono/zod-validator": "^0.7.2",
     "@supabase/supabase-js": "2.54.0",
+    "dotenv": "^17.2.1",
     "graphile-worker": "0.16.6",
     "hono": "4.9.0",
     "tus-js-client": "^4.3.1",
