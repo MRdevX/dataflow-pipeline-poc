@@ -1,0 +1,576 @@
+{
+  "info": {
+    "_postman_id": "take-home-backend-api-current",
+    "name": "Take Home Backend API - Current Implementation",
+    "description": "API collection for the take-home backend assignment. Includes health check and JSON import endpoints with proper validation. Includes test with existing test-data.json file.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "GET Health Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check the health status of the API and its dependencies (database and storage)."
+          },
+          "response": [
+            {
+              "name": "Healthy Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": \"2024-12-01T10:00:00.000Z\"\n}"
+            },
+            {
+              "name": "Unhealthy Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/health",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["health"]
+                }
+              },
+              "status": "Service Unavailable",
+              "code": 503,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"status\": \"unhealthy\",\n  \"error\": \"Database connection failed: 500\",\n  \"timestamp\": \"2024-12-01T10:00:00.000Z\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Health check endpoints to verify API and service status."
+    },
+    {
+      "name": "JSON Import",
+      "item": [
+        {
+          "name": "POST Import Small Dataset (Standard)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"manual-import\",\n  \"data\": [\n    {\n      \"name\": \"John Doe\",\n      \"email\": \"john.doe@example.com\"\n    },\n    {\n      \"name\": \"Jane Smith\",\n      \"email\": \"jane.smith@example.com\"\n    },\n    {\n      \"name\": \"Bob Johnson\",\n      \"email\": \"bob.johnson@example.com\"\n    }\n  ],\n  \"useResumable\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["import"]
+            },
+            "description": "Import a small dataset using standard upload method. This endpoint accepts an array of contact objects with name and email fields."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"source\": \"manual-import\",\n  \"data\": [\n    {\n      \"name\": \"John Doe\",\n      \"email\": \"john.doe@example.com\"\n    }\n  ],\n  \"useResumable\": false\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/import",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["import"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"jobId\": \"1701432000000\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Import Large Dataset (Resumable)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"bulk-import\",\n  \"data\": [\n    {\n      \"name\": \"Alice Brown\",\n      \"email\": \"alice.brown@example.com\"\n    },\n    {\n      \"name\": \"Charlie Wilson\",\n      \"email\": \"charlie.wilson@example.com\"\n    },\n    {\n      \"name\": \"Diana Davis\",\n      \"email\": \"diana.davis@example.com\"\n    },\n    {\n      \"name\": \"Edward Miller\",\n      \"email\": \"edward.miller@example.com\"\n    },\n    {\n      \"name\": \"Fiona Garcia\",\n      \"email\": \"fiona.garcia@example.com\"\n    }\n  ],\n  \"useResumable\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["import"]
+            },
+            "description": "Import a larger dataset using resumable upload method. This is useful for large datasets that may need to be resumed if interrupted."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"source\": \"bulk-import\",\n  \"data\": [\n    {\n      \"name\": \"Alice Brown\",\n      \"email\": \"alice.brown@example.com\"\n    }\n  ],\n  \"useResumable\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/import",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["import"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"jobId\": \"1701432000001\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Import Test Data (Standard)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{testData}}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["import"]
+            },
+            "description": "Import the complete test dataset from scripts/test-data.json using standard upload method. This tests the API with a large dataset of 1000+ contacts."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{{testData}}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/import",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["import"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"jobId\": \"1701432000002\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Import Test Data (Resumable)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"e2e-test-resumable\",\n  \"data\": {{testDataArray}},\n  \"useResumable\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["import"]
+            },
+            "description": "Import the complete test dataset from scripts/test-data.json using resumable upload method. This tests the API with a large dataset of 1000+ contacts using resumable upload."
+          },
+          "response": [
+            {
+              "name": "Success Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"source\": \"e2e-test-resumable\",\n  \"data\": {{testDataArray}},\n  \"useResumable\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/import",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["import"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"jobId\": \"1701432000003\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "JSON import endpoints for uploading contact data as JSON. Supports both standard and resumable upload methods. Includes tests with the existing test-data.json file."
+    },
+    {
+      "name": "Validation & Error Testing",
+      "item": [
+        {
+          "name": "POST Import Data (Validation Error)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"invalid-import\",\n  \"data\": [\n    {\n      \"name\": \"\",\n      \"email\": \"invalid-email\"\n    },\n    {\n      \"name\": \"Valid Name\",\n      \"email\": \"valid@example.com\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["import"]
+            },
+            "description": "Test validation errors with invalid data (empty name, invalid email format)."
+          },
+          "response": [
+            {
+              "name": "Validation Error Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"source\": \"invalid-import\",\n  \"data\": [\n    {\n      \"name\": \"\",\n      \"email\": \"invalid-email\"\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/import",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["import"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"data\": {\n    \"issues\": [\n      {\n        \"code\": \"too_small\",\n        \"minimum\": 1,\n        \"type\": \"string\",\n        \"inclusive\": true,\n        \"exact\": false,\n        \"message\": \"String must contain at least 1 character(s)\",\n        \"path\": [\"data\", 0, \"name\"]\n      },\n      {\n        \"code\": \"invalid_string\",\n        \"validation\": \"email\",\n        \"message\": \"Invalid email\",\n        \"path\": [\"data\", 0, \"email\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Import Data (Empty Array)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"empty-import\",\n  \"data\": [],\n  \"useResumable\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["import"]
+            },
+            "description": "Test validation error when sending an empty data array."
+          },
+          "response": [
+            {
+              "name": "Empty Array Error Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"source\": \"empty-import\",\n  \"data\": []\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/import",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["import"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"data\": {\n    \"issues\": [\n      {\n        \"code\": \"too_small\",\n        \"minimum\": 1,\n        \"type\": \"array\",\n        \"inclusive\": true,\n        \"exact\": false,\n        \"message\": \"Array must contain at least 1 element(s)\",\n        \"path\": [\"data\"]\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "POST Import Data (Missing Required Fields)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "{{contentType}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source\": \"incomplete-import\",\n  \"data\": [\n    {\n      \"name\": \"John Doe\"\n    },\n    {\n      \"email\": \"jane@example.com\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["import"]
+            },
+            "description": "Test validation error when contact objects are missing required fields (name or email)."
+          },
+          "response": [
+            {
+              "name": "Missing Fields Error Response",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"source\": \"incomplete-import\",\n  \"data\": [\n    {\n      \"name\": \"John Doe\"\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/import",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["import"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"success\": false,\n  \"data\": {\n    \"issues\": [\n      {\n        \"code\": \"invalid_type\",\n        \"expected\": \"string\",\n        \"received\": \"undefined\",\n        \"path\": [\"data\", 0, \"email\"],\n        \"message\": \"Required\"\n      }\n    ],\n    \"name\": \"ZodError\"\n  }\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Validation and error testing endpoints to verify proper error handling."
+    },
+    {
+      "name": "Error Handling",
+      "item": [
+        {
+          "name": "GET Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/nonexistent",
+              "host": ["{{baseUrl}}"],
+              "path": ["nonexistent"]
+            },
+            "description": "Test 404 Not Found response for non-existent endpoints."
+          },
+          "response": [
+            {
+              "name": "Not Found Response",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/nonexistent",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["nonexistent"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n  \"error\": \"Not found\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Error handling endpoints to test various error scenarios."
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Pre-request script to set up any necessary variables",
+          "console.log('Making request to: ' + pm.request.url);",
+          "console.log('Environment: ' + pm.environment.name);",
+          "console.log('Base URL: ' + pm.environment.get('baseUrl'));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Test script to validate responses",
+          "pm.test('Status code is valid', function () {",
+          "    pm.response.to.have.status(200);",
+          "});",
+          "",
+          "pm.test('Response time is less than timeout', function () {",
+          "    const timeout = parseInt(pm.environment.get('timeout') || '5000');",
+          "    pm.expect(pm.response.responseTime).to.be.below(timeout);",
+          "});",
+          "",
+          "pm.test('Response has required headers', function () {",
+          "    pm.response.to.have.header('Content-Type');",
+          "});",
+          "",
+          "pm.test('Response is JSON', function () {",
+          "    pm.response.to.be.json;",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "{{baseUrl}}",
+      "type": "string"
+    },
+    {
+      "key": "contentType",
+      "value": "{{contentType}}",
+      "type": "string"
+    }
+  ]
+}
