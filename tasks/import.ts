@@ -13,7 +13,7 @@ interface Contact {
 }
 
 interface ProcessedContact {
-  id: string;
+  id?: string;
   name: string;
   email: string;
   source: string;
@@ -24,8 +24,21 @@ const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SE
 
 const processImportJob: Task = async (payload, { logger }) => {
   const { jobId, source } = payload as ImportJobPayload;
+  const fileName = `import-${jobId}.json`;
 
-  logger.info(`Starting import job ${jobId} from source: ${source}`);
+  const { data: fileData } = await supabase.storage.from("imports").download(fileName);
+  const jsonText = await fileData!.text();
+  const contacts: Contact[] = JSON.parse(jsonText);
+
+  const contactsToInsert: ProcessedContact[] = contacts.map((contact: Contact) => ({
+    name: contact.name,
+    email: contact.email,
+    source: source,
+    imported_at: new Date().toISOString(),
+  }));
+
+  await supabase.from("contacts").insert(contactsToInsert);
+  await supabase.storage.from("imports").remove([fileName]);
 };
 
 export default processImportJob;

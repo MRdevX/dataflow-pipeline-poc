@@ -25,7 +25,7 @@ app.post("/import", async (c) => {
     connectionString,
   });
 
-  await workerUtils.addJob("processImport", {
+  await workerUtils.addJob("processImportJob", {
     jobId,
     source,
   });
