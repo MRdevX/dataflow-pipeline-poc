@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ImportTaskProcessor } from "../../../src/workers/tasks/import.task.js";
 import type { ImportJobPayload, ImportTaskDependencies, ImportTaskHelpers } from "../../../src/workers/tasks/import.task.js";
-import { createTestContext } from "../../utils/test-helpers.js";
+import {
+  createMockImportJobPayload,
+  createMockImportTaskDependencies,
+  createMockImportTaskHelpers,
+} from "../../fixtures/workers.fixture.js";
+import { createTestContext } from "../../utils/test-context.js";
+import { sampleContacts, invalidContacts, partialContacts } from "../../fixtures/contacts.fixture.js";
 
 describe("ImportTaskProcessor", () => {
   let processor: ImportTaskProcessor;
@@ -9,8 +15,7 @@ describe("ImportTaskProcessor", () => {
   let mockHelpers: ImportTaskHelpers;
   let mockPayload: ImportJobPayload;
 
-  const { createMockImportJobPayload, createMockImportTaskDependencies, createMockImportTaskHelpers, createMockContact } =
-    createTestContext();
+  createTestContext();
 
   beforeEach(() => {
     mockDependencies = createMockImportTaskDependencies();
@@ -21,11 +26,7 @@ describe("ImportTaskProcessor", () => {
 
   describe("processImportJob", () => {
     it("should process import job successfully", async () => {
-      const mockContacts = [
-        { name: "John Doe", email: "john@example.com" },
-        { name: "Jane Doe", email: "jane@example.com" },
-      ];
-      const mockJsonData = JSON.stringify(mockContacts);
+      const mockJsonData = JSON.stringify(sampleContacts);
 
       (mockDependencies.storageRepository.downloadFile as any).mockResolvedValue(mockJsonData);
       (mockDependencies.contactRepository.createMany as any).mockResolvedValue([]);
@@ -39,12 +40,13 @@ describe("ImportTaskProcessor", () => {
       expect(mockDependencies.contactRepository.createMany).toHaveBeenCalledWith([
         { name: "John Doe", email: "john@example.com", source: mockPayload.source },
         { name: "Jane Doe", email: "jane@example.com", source: mockPayload.source },
+        { name: "Bob Smith", email: "bob@example.com", source: mockPayload.source },
       ]);
 
       expect(mockHelpers.logger.info).toHaveBeenCalledWith(
         `Processing import job ${mockPayload.jobId} from ${mockPayload.source}`
       );
-      expect(mockHelpers.logger.info).toHaveBeenCalledWith(`Successfully processed 2 contacts for job ${mockPayload.jobId}`);
+      expect(mockHelpers.logger.info).toHaveBeenCalledWith(`Successfully processed 3 contacts for job ${mockPayload.jobId}`);
     });
 
     it("should handle contacts with missing name and email", async () => {
@@ -150,12 +152,7 @@ describe("ImportTaskProcessor", () => {
     });
 
     it("should handle contacts with partial data", async () => {
-      const mockContacts = [
-        { name: "John Doe" },
-        { email: "jane@example.com" },
-        { name: "Bob Smith", email: "bob@example.com" },
-      ];
-      const mockJsonData = JSON.stringify(mockContacts);
+      const mockJsonData = JSON.stringify(partialContacts);
 
       (mockDependencies.storageRepository.downloadFile as any).mockResolvedValue(mockJsonData);
       (mockDependencies.contactRepository.createMany as any).mockResolvedValue([]);

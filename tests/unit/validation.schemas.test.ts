@@ -1,15 +1,17 @@
 import { describe, it, expect } from "vitest";
 import { importRequestSchema } from "../../src/validation/validation.schemas.js";
-import { createTestContext } from "../utils/test-helpers.js";
+import { createTestContext } from "../utils/test-context.js";
+import { createMockContact, sampleContacts, invalidContacts } from "../fixtures/contacts.fixture.js";
+import { validImportRequests, invalidImportRequests } from "../fixtures/import-requests.fixture.js";
 
 describe("Validation Schemas", () => {
-  const { createMockContact } = createTestContext();
+  createTestContext();
 
   describe("importRequestSchema", () => {
     it("should validate correct import request data", () => {
       const validData = {
         source: "Test Company",
-        data: Array.from({ length: 3 }, () => createMockContact()),
+        data: sampleContacts,
         useResumable: false,
       };
 
@@ -20,7 +22,7 @@ describe("Validation Schemas", () => {
     it("should validate import request without useResumable (should default to false)", () => {
       const validData = {
         source: "Test Company",
-        data: Array.from({ length: 2 }, () => createMockContact()),
+        data: sampleContacts.slice(0, 2),
       };
 
       const result = importRequestSchema.safeParse(validData);
@@ -31,19 +33,14 @@ describe("Validation Schemas", () => {
     });
 
     it("should reject empty source", () => {
-      const invalidData = {
-        source: "",
-        data: Array.from({ length: 1 }, () => createMockContact()),
-      };
-
-      const result = importRequestSchema.safeParse(invalidData);
+      const result = importRequestSchema.safeParse(invalidImportRequests.emptySource);
       expect(result.success).toBe(false);
     });
 
     it("should reject source longer than 100 characters", () => {
       const invalidData = {
         source: "a".repeat(101),
-        data: Array.from({ length: 1 }, () => createMockContact()),
+        data: [createMockContact()],
       };
 
       const result = importRequestSchema.safeParse(invalidData);
@@ -51,12 +48,7 @@ describe("Validation Schemas", () => {
     });
 
     it("should reject empty data array", () => {
-      const invalidData = {
-        source: "Test Company",
-        data: [],
-      };
-
-      const result = importRequestSchema.safeParse(invalidData);
+      const result = importRequestSchema.safeParse(validImportRequests.emptyData);
       expect(result.success).toBe(false);
     });
 
@@ -76,31 +68,12 @@ describe("Validation Schemas", () => {
     });
 
     it("should reject invalid email format", () => {
-      const invalidData = {
-        source: "Test Company",
-        data: [
-          {
-            name: "John Doe",
-            email: "invalid-email",
-          },
-        ],
-      };
-
-      const result = importRequestSchema.safeParse(invalidData);
+      const result = importRequestSchema.safeParse(invalidImportRequests.invalidEmail);
       expect(result.success).toBe(false);
     });
 
     it("should reject missing required fields", () => {
-      const invalidData = {
-        source: "Test Company",
-        data: [
-          {
-            name: "John Doe",
-          },
-        ],
-      };
-
-      const result = importRequestSchema.safeParse(invalidData);
+      const result = importRequestSchema.safeParse(invalidImportRequests.missingName);
       expect(result.success).toBe(false);
     });
   });

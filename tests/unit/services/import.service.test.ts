@@ -1,15 +1,38 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { ImportService } from "../../../src/services/import.service.js";
-import type { ImportRequest } from "../../../src/models/job.model.js";
-import { createTestContext } from "../../utils/test-helpers.js";
+import { vi } from "vitest";
 
-vi.mock("../../../src/repositories/storage.repository.js");
-vi.mock("../../../src/services/resumable-upload.service.js");
-vi.mock("../../../src/workers/worker-utils.js");
+vi.mock("../../../src/repositories/storage.repository.js", () => ({
+  StorageRepository: vi.fn().mockImplementation(() => ({
+    uploadFile: vi.fn().mockResolvedValue(undefined),
+    downloadFile: vi.fn().mockResolvedValue(""),
+    deleteFile: vi.fn().mockResolvedValue(undefined),
+  })),
+}));
+
+vi.mock("../../../src/services/resumable-upload.service.js", () => ({
+  ResumableUploadService: vi.fn().mockImplementation(() => ({
+    uploadFile: vi.fn().mockResolvedValue("https://example.com/uploaded-file"),
+    uploadJsonData: vi.fn().mockResolvedValue("https://example.com/uploaded-file"),
+  })),
+}));
+
+vi.mock("../../../src/workers/worker-utils.js", () => ({
+  addJob: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { describe, it, expect, beforeEach } from "vitest";
+import { ImportService } from "../../../src/services/import.service.js";
+import {
+  createMockImportRequest,
+  validImportRequests,
+  invalidImportRequests,
+} from "../../fixtures/import-requests.fixture.js";
+import { createTestContext } from "../../utils/test-context.js";
+import { expectValidJobId } from "../../utils/assertions.js";
 
 describe("ImportService", () => {
   let importService: ImportService;
-  const { createMockImportRequest } = createTestContext();
+
+  createTestContext();
 
   beforeEach(() => {
     importService = new ImportService();
@@ -20,23 +43,21 @@ describe("ImportService", () => {
       const request = createMockImportRequest();
       const result = await importService.processImport(request, false);
 
-      expect(result).toHaveProperty("jobId");
-      expect(typeof result.jobId).toBe("string");
+      expectValidJobId(result);
     });
 
     it("should process import with resumable upload", async () => {
       const request = createMockImportRequest();
       const result = await importService.processImport(request, true);
 
-      expect(result).toHaveProperty("jobId");
-      expect(typeof result.jobId).toBe("string");
+      expectValidJobId(result);
     });
 
     it("should default to non-resumable upload when useResumable is not specified", async () => {
       const request = createMockImportRequest();
       const result = await importService.processImport(request);
 
-      expect(result).toHaveProperty("jobId");
+      expectValidJobId(result);
     });
 
     it("should generate unique job IDs for different requests", async () => {
@@ -50,14 +71,9 @@ describe("ImportService", () => {
     });
 
     it("should handle empty data array", async () => {
-      const requestWithEmptyData: ImportRequest = {
-        source: "test-source",
-        data: [],
-      };
+      const result = await importService.processImport(validImportRequests.emptyData, false);
 
-      const result = await importService.processImport(requestWithEmptyData, false);
-
-      expect(result).toHaveProperty("jobId");
+      expectValidJobId(result);
     });
   });
 });

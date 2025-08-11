@@ -1,9 +1,7 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import { ResumableUploadService } from "../../../src/services/resumable-upload.service.js";
-import { createTestContext } from "../../utils/test-helpers.js";
+import { vi } from "vitest";
 
 vi.mock("tus-js-client", () => ({
-  Upload: vi.fn(function MockUpload(file, options) {
+  Upload: vi.fn(function MockUpload(file: any, options: any) {
     setTimeout(() => {
       if (options.onSuccess) {
         options.onSuccess();
@@ -47,8 +45,14 @@ vi.mock("../../../src/constants/storage.constants.js", () => ({
   },
 }));
 
+import { describe, it, expect, beforeEach } from "vitest";
+import { ResumableUploadService } from "../../../src/services/resumable-upload.service.js";
+import { createMockContacts, sampleContacts } from "../../fixtures/contacts.fixture.js";
+import { createTestContext } from "../../utils/test-context.js";
+
 describe("ResumableUploadService", () => {
   let resumableUploadService: ResumableUploadService;
+
   createTestContext();
 
   beforeEach(() => {
@@ -98,10 +102,7 @@ describe("ResumableUploadService", () => {
 
   describe("uploadJsonData", () => {
     it("should upload JSON data successfully", async () => {
-      const mockData = [
-        { name: "John Doe", email: "john@example.com" },
-        { name: "Jane Doe", email: "jane@example.com" },
-      ];
+      const mockData = sampleContacts;
       const mockMetadata = {
         jobId: "test-job-id",
         source: "test-source",
@@ -113,7 +114,7 @@ describe("ResumableUploadService", () => {
     });
 
     it("should handle upload without metadata", async () => {
-      const mockData = [{ name: "John Doe", email: "john@example.com" }];
+      const mockData = createMockContacts(1);
 
       const result = await resumableUploadService.uploadJsonData("test-file.json", mockData);
 

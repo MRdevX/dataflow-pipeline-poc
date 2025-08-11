@@ -1,13 +1,13 @@
-import { describe, it, expect, vi } from "vitest";
-import { testClient } from "hono/testing";
-import app from "../../src/app.js";
-import { createTestContext } from "../utils/test-helpers.js";
+import { vi } from "vitest";
 
 vi.mock("../../src/utils/supabase.client.js", () => ({
   supabase: {
     storage: {
       from: vi.fn(() => ({
         list: vi.fn(() => ({ error: null })),
+        upload: vi.fn(() => ({ error: null })),
+        download: vi.fn(() => ({ error: null, data: "test data" })),
+        remove: vi.fn(() => ({ error: null })),
       })),
     },
   },
@@ -15,9 +15,24 @@ vi.mock("../../src/utils/supabase.client.js", () => ({
 
 vi.mock("../../src/config/index.js", () => ({
   config: {
+    env: "development",
+    port: 3000,
+    database: {
+      url: "postgresql://test:test@localhost:5432/test",
+    },
     supabase: {
       url: "http://localhost:54321",
-      serviceRoleKey: "test-key",
+      serviceRoleKey: "test-service-key",
+    },
+    worker: {
+      concurrency: 10,
+      pollInterval: 500,
+    },
+    upload: {
+      chunkSize: 6 * 1024 * 1024,
+      retryDelays: [0, 1000, 3000, 5000],
+      cacheControl: "public, max-age=31536000",
+      defaultContentType: "application/json",
     },
     metrics: {
       enabled: false,
@@ -34,6 +49,12 @@ vi.mock("../../src/services/import.service.js", () => ({
 vi.mock("../../src/workers/worker-utils.js", () => ({
   addJob: vi.fn().mockResolvedValue(undefined),
 }));
+
+import { describe, it, expect } from "vitest";
+import { testClient } from "hono/testing";
+import app from "../../src/app.js";
+import { createTestContext } from "../utils/test-context.js";
+import { validImportRequests, invalidImportRequests } from "../fixtures/import-requests.fixture.js";
 
 global.fetch = vi.fn();
 
@@ -73,23 +94,9 @@ describe("App Integration Tests", () => {
   });
 
   describe("Import Route", () => {
-    const createValidImportData = (overrides = {}) => ({
-      source: "test-source",
-      data: [
-        {
-          name: "John Doe",
-          email: "john@example.com",
-        },
-      ],
-      useResumable: false,
-      ...overrides,
-    });
-
     it("should create import job with valid data", async () => {
-      const validImportData = createValidImportData();
-
       const res = await client.import.$post({
-        json: validImportData,
+        json: validImportRequests.basic,
       });
 
       expect(res.status).toBe(200);
@@ -99,13 +106,8 @@ describe("App Integration Tests", () => {
     });
 
     it("should create import job with resumable upload", async () => {
-      const validImportData = createValidImportData({
-        data: [{ name: "Jane Doe", email: "jane@example.com" }],
-        useResumable: true,
-      });
-
       const res = await client.import.$post({
-        json: validImportData,
+        json: validImportRequests.withResumable,
       });
 
       expect(res.status).toBe(200);
@@ -114,36 +116,24 @@ describe("App Integration Tests", () => {
     });
 
     it("should reject invalid email format", async () => {
-      const invalidImportData = createValidImportData({
-        data: [{ name: "John Doe", email: "invalid-email" }],
-      });
-
       const res = await client.import.$post({
-        json: invalidImportData,
+        json: invalidImportRequests.invalidEmail,
       });
 
       expect(res.status).toBe(400);
     });
 
     it("should reject empty data array", async () => {
-      const invalidImportData = createValidImportData({
-        data: [],
-      });
-
       const res = await client.import.$post({
-        json: invalidImportData,
+        json: validImportRequests.emptyData,
       });
 
       expect(res.status).toBe(400);
     });
 
     it("should reject empty source", async () => {
-      const invalidImportData = createValidImportData({
-        source: "",
-      });
-
       const res = await client.import.$post({
-        json: invalidImportData,
+        json: invalidImportRequests.emptySource,
       });
 
       expect(res.status).toBe(400);
