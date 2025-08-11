@@ -4,5 +4,5 @@ export interface ImportRequest {
 }
 
 export interface ImportResponse {
-	jobId: number;
+	jobId: string;
 }

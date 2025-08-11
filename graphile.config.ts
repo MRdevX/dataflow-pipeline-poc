@@ -6,6 +6,7 @@ const preset: GraphileConfig.Preset = {
 		connectionString: process.env.DATABASE_URL,
 		concurrentJobs: 5,
 		fileExtensions: [".js", ".cjs", ".mjs", ".ts", ".cts", ".mts"],
+		taskDirectory: "src/workers/tasks",
 	},
 };
 

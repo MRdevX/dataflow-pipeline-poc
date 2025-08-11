@@ -1,33 +1,51 @@
 {
-	"name": "take-home-backend",
-	"type": "module",
-	"version": "1.0.0",
-	"description": "Take-home exercise: Import Pipeline with Hono + Supabase",
-	"main": "dist/api/index.js",
-	"scripts": {
-		"dev": "dotenv -- tsx watch api/index.ts",
-		"supabase:start": "supabase start",
-		"supabase:stop": "supabase stop",
-		"supabase:reset": "supabase db reset",
-		"graphile-worker:install": "dotenv -- graphile-worker --schema-only",
-		"graphile-worker:run-once": "dotenv -- graphile-worker --once",
-		"e2e": "./scripts/e2e-test.sh",
-		"fix": "biome check --write ."
-	},
-	"author": "",
-	"license": "MIT",
-	"dependencies": {
-		"@hono/node-server": "1.12.0",
-		"@supabase/supabase-js": "2.38.4",
-		"graphile-worker": "0.16.6",
-		"hono": "4.6.8"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "2.1.1",
-		"@types/node": "20.10.5",
-		"dotenv-cli": "^8.0.0",
-		"supabase": "2.22.2",
-		"tsx": "4.7.0",
-		"typescript": "5.3.3"
-	}
+  "name": "take-home-backend",
+  "type": "module",
+  "version": "1.1.0",
+  "description": "Take-home exercise: Import Pipeline with Hono + Supabase",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "dotenv -- tsx watch src/server.ts",
+    "supabase:start": "supabase start",
+    "supabase:stop": "supabase stop",
+    "supabase:reset": "supabase db reset",
+    "graphile-worker:install": "dotenv -- graphile-worker --schema-only",
+    "graphile-worker:run-once": "dotenv -- graphile-worker --once",
+    "worker:run-once": "dotenv -- tsx src/workers/worker.ts --once",
+    "worker": "dotenv -- tsx src/workers/worker.ts",
+    "e2e": "./scripts/e2e-test.sh",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
+    "test:run": "vitest run",
+    "test:unit": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration",
+    "fix": "biome check --write .",
+    "release": "npx standard-version"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@hono/node-server": "1.18.1",
+    "@hono/prometheus": "^1.0.2",
+    "@hono/zod-validator": "^0.7.2",
+    "@supabase/supabase-js": "2.54.0",
+    "dotenv": "^17.2.1",
+    "graphile-worker": "0.16.6",
+    "hono": "4.9.0",
+    "tus-js-client": "^4.3.1",
+    "zod": "^4.0.17"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.1.4",
+    "@faker-js/faker": "^9.9.0",
+    "@types/node": "20.10.5",
+    "@vitest/coverage-v8": "2.1.9",
+    "dotenv-cli": "^8.0.0",
+    "supabase": "2.33.9",
+    "ts-node": "^10.9.2",
+    "tsx": "4.20.3",
+    "typescript": "5.9.2",
+    "vitest": "^2.1.8"
+  }
 }
