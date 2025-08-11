@@ -40,14 +40,18 @@ export class ImportTaskProcessor {
       const contactsToInsert = contacts.map((contact: Contact) => ({
         name: contact.name || "Unknown",
         email: contact.email || "unknown@import.local",
-        source: source,
+        source,
       }));
 
       await this.dependencies.contactRepository.createMany(contactsToInsert);
 
-      await this.dependencies.storageRepository.deleteFile(fileName);
+      try {
+        await this.dependencies.storageRepository.deleteFile(fileName);
+      } catch (delErr) {
+        helpers.logger.error(`Cleanup failed for ${fileName}: ${delErr}`);
+      }
 
-      helpers.logger.info(`Successfully processed ${contacts.length} contacts for job ${jobId}`);
+      helpers.logger.info(`Successfully processed ${contactsToInsert.length} contacts for job ${jobId}`);
     } catch (error) {
       helpers.logger.error(`Failed to process import job ${jobId}: ${error}`);
       throw error;
