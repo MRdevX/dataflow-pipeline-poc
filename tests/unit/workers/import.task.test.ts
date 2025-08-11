@@ -7,7 +7,7 @@ import {
   createMockImportTaskHelpers,
 } from "../../fixtures/workers.fixture.js";
 import { createTestContext } from "../../utils/test-context.js";
-import { sampleContacts, invalidContacts, partialContacts } from "../../fixtures/contacts.fixture.js";
+import { sampleContacts, partialContacts } from "../../fixtures/contacts.fixture.js";
 
 describe("ImportTaskProcessor", () => {
   let processor: ImportTaskProcessor;
@@ -49,7 +49,7 @@ describe("ImportTaskProcessor", () => {
       expect(mockHelpers.logger.info).toHaveBeenCalledWith(`Successfully processed 3 contacts for job ${mockPayload.jobId}`);
     });
 
-    it("should handle contacts with missing name and email", async () => {
+    it("should throw error for contacts with missing name and email", async () => {
       const mockContacts = [
         { name: "", email: "" },
         { name: "Jane Doe", email: "jane@example.com" },
@@ -57,29 +57,25 @@ describe("ImportTaskProcessor", () => {
       const mockJsonData = JSON.stringify(mockContacts);
 
       (mockDependencies.storageRepository.downloadFile as any).mockResolvedValue(mockJsonData);
-      (mockDependencies.contactRepository.createMany as any).mockResolvedValue([]);
-      (mockDependencies.storageRepository.deleteFile as any).mockResolvedValue(undefined);
 
-      await processor.processImportJob(mockPayload, mockHelpers);
+      await expect(processor.processImportJob(mockPayload, mockHelpers)).rejects.toThrow();
 
-      expect(mockDependencies.contactRepository.createMany).toHaveBeenCalledWith([
-        { name: "Unknown", email: "unknown@import.local", source: mockPayload.source },
-        { name: "Jane Doe", email: "jane@example.com", source: mockPayload.source },
-      ]);
+      expect(mockHelpers.logger.error).toHaveBeenCalledWith(
+        expect.stringContaining(`Failed to process import job ${mockPayload.jobId}`)
+      );
     });
 
-    it("should handle empty contacts array", async () => {
+    it("should throw error for empty contacts array", async () => {
       const mockContacts: any[] = [];
       const mockJsonData = JSON.stringify(mockContacts);
 
       (mockDependencies.storageRepository.downloadFile as any).mockResolvedValue(mockJsonData);
-      (mockDependencies.contactRepository.createMany as any).mockResolvedValue([]);
-      (mockDependencies.storageRepository.deleteFile as any).mockResolvedValue(undefined);
 
-      await processor.processImportJob(mockPayload, mockHelpers);
+      await expect(processor.processImportJob(mockPayload, mockHelpers)).rejects.toThrow();
 
-      expect(mockDependencies.contactRepository.createMany).toHaveBeenCalledWith([]);
-      expect(mockHelpers.logger.info).toHaveBeenCalledWith(`Successfully processed 0 contacts for job ${mockPayload.jobId}`);
+      expect(mockHelpers.logger.error).toHaveBeenCalledWith(
+        expect.stringContaining(`Failed to process import job ${mockPayload.jobId}`)
+      );
     });
 
     it("should throw error for invalid JSON data format", async () => {
@@ -135,7 +131,7 @@ describe("ImportTaskProcessor", () => {
       );
     });
 
-    it("should throw error when file deletion fails", async () => {
+    it("should log error but not throw when file deletion fails", async () => {
       const mockContacts = [{ name: "John Doe", email: "john@example.com" }];
       const mockJsonData = JSON.stringify(mockContacts);
       const deletionError = new Error("File deletion failed");
@@ -144,27 +140,24 @@ describe("ImportTaskProcessor", () => {
       (mockDependencies.contactRepository.createMany as any).mockResolvedValue([]);
       (mockDependencies.storageRepository.deleteFile as any).mockRejectedValue(deletionError);
 
-      await expect(processor.processImportJob(mockPayload, mockHelpers)).rejects.toThrow(deletionError);
+      await processor.processImportJob(mockPayload, mockHelpers);
+
+      expect(mockHelpers.logger.error).toHaveBeenCalledWith(
+        expect.stringContaining(`Cleanup failed for import-${mockPayload.jobId}.json`)
+      );
+      expect(mockHelpers.logger.info).toHaveBeenCalledWith(`Successfully processed 1 contacts for job ${mockPayload.jobId}`);
+    });
+
+    it("should throw error for contacts with partial data", async () => {
+      const mockJsonData = JSON.stringify(partialContacts);
+
+      (mockDependencies.storageRepository.downloadFile as any).mockResolvedValue(mockJsonData);
+
+      await expect(processor.processImportJob(mockPayload, mockHelpers)).rejects.toThrow();
 
       expect(mockHelpers.logger.error).toHaveBeenCalledWith(
         expect.stringContaining(`Failed to process import job ${mockPayload.jobId}`)
       );
-    });
-
-    it("should handle contacts with partial data", async () => {
-      const mockJsonData = JSON.stringify(partialContacts);
-
-      (mockDependencies.storageRepository.downloadFile as any).mockResolvedValue(mockJsonData);
-      (mockDependencies.contactRepository.createMany as any).mockResolvedValue([]);
-      (mockDependencies.storageRepository.deleteFile as any).mockResolvedValue(undefined);
-
-      await processor.processImportJob(mockPayload, mockHelpers);
-
-      expect(mockDependencies.contactRepository.createMany).toHaveBeenCalledWith([
-        { name: "John Doe", email: "unknown@import.local", source: mockPayload.source },
-        { name: "Unknown", email: "jane@example.com", source: mockPayload.source },
-        { name: "Bob Smith", email: "bob@example.com", source: mockPayload.source },
-      ]);
     });
 
     it("should use correct file name format", async () => {

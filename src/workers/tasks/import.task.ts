@@ -1,7 +1,7 @@
 import type { Task } from "graphile-worker";
-import type { Contact } from "../../models/contact.model.js";
 import { ContactRepository } from "../../repositories/contact.repository.js";
 import { StorageRepository } from "../../repositories/storage.repository.js";
+import { z } from "zod";
 
 export interface ImportJobPayload {
   jobId: string;
@@ -20,6 +20,13 @@ export interface ImportTaskHelpers {
   };
 }
 
+const importedContactSchema = z.object({
+  name: z.string().min(1).max(255),
+  email: z.email(),
+});
+
+const importedContactsArraySchema = z.array(importedContactSchema).min(1);
+
 export class ImportTaskProcessor {
   constructor(private dependencies: ImportTaskDependencies) {}
 
@@ -31,15 +38,17 @@ export class ImportTaskProcessor {
 
     try {
       const jsonText = await this.dependencies.storageRepository.downloadFile(fileName);
-      const contacts: Contact[] = JSON.parse(jsonText);
+      const rawContacts = JSON.parse(jsonText);
 
-      if (!Array.isArray(contacts)) {
+      if (!Array.isArray(rawContacts)) {
         throw new Error("Invalid data format: expected array of contacts");
       }
 
-      const contactsToInsert = contacts.map((contact: Contact) => ({
-        name: contact.name || "Unknown",
-        email: contact.email || "unknown@import.local",
+      const validatedContacts = importedContactsArraySchema.parse(rawContacts);
+
+      const contactsToInsert = validatedContacts.map((contact) => ({
+        name: contact.name,
+        email: contact.email,
         source,
       }));
 

@@ -24,7 +24,6 @@ import { ImportService } from "../../../src/services/import.service.js";
 import {
   createMockImportRequest,
   validImportRequests,
-  invalidImportRequests,
 } from "../../fixtures/import-requests.fixture.js";
 import { createTestContext } from "../../utils/test-context.js";
 import { expectValidJobId } from "../../utils/assertions.js";

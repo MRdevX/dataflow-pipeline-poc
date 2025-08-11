@@ -31,8 +31,11 @@ export abstract class BaseHttpClient {
 
 		if (!response.ok) {
 			const errorText = await response.text();
+			const sanitizedError = errorText.length > 200 
+				? `${errorText.substring(0, 200)}...` 
+				: errorText;
 			throw new Error(
-				`${this.constructor.name} API error: ${response.status} ${response.statusText} - ${errorText}`,
+				`${this.constructor.name} API error: ${response.status} ${response.statusText} - ${sanitizedError}`,
 			);
 		}
 
