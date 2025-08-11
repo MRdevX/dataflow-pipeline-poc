@@ -19,6 +19,9 @@ vi.mock("../../src/config/index.js", () => ({
       url: "http://localhost:54321",
       serviceRoleKey: "test-key",
     },
+    metrics: {
+      enabled: false,
+    },
   },
 }));
 
