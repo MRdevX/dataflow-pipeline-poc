@@ -1,7 +1,7 @@
 {
   "name": "take-home-backend",
   "type": "module",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Take-home exercise: Import Pipeline with Hono + Supabase",
   "main": "dist/server.js",
   "scripts": {
@@ -20,7 +20,8 @@
     "test:run": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "fix": "biome check --write ."
+    "fix": "biome check --write .",
+    "release": "npx standard-version"
   },
   "author": "",
   "license": "MIT",
