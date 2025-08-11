@@ -4,12 +4,15 @@ import { logger } from "hono/logger";
 import { poweredBy } from "hono/powered-by";
 import importRoutes from "./routes/import.route.js";
 import healthRoutes from "./routes/health.route.js";
+import { setupMetrics } from "./middleware/metrics.middleware.js";
 
 const app = new Hono();
 
 app.use(poweredBy());
 app.use(logger());
 app.use(cors());
+
+setupMetrics(app);
 
 app.route("/health", healthRoutes);
 app.route("/import", importRoutes);

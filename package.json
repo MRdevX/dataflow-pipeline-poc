@@ -26,6 +26,7 @@
   "license": "MIT",
   "dependencies": {
     "@hono/node-server": "1.18.1",
+    "@hono/prometheus": "^1.0.2",
     "@hono/zod-validator": "^0.7.2",
     "@supabase/supabase-js": "2.54.0",
     "dotenv": "^17.2.1",
