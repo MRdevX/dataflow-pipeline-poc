@@ -21,10 +21,7 @@ vi.mock("../../../src/workers/worker-utils.js", () => ({
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { ImportService } from "../../../src/services/import.service.js";
-import {
-  createMockImportRequest,
-  validImportRequests,
-} from "../../fixtures/import-requests.fixture.js";
+import { createMockImportRequest, validImportRequests } from "../../fixtures/import-requests.fixture.js";
 import { createTestContext } from "../../utils/test-context.js";
 import { expectValidJobId } from "../../utils/assertions.js";
 

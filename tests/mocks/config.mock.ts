@@ -7,8 +7,9 @@ export const mockConfig = {
     url: "postgresql://test:test@localhost:5432/test",
   },
   supabase: {
-    url: "http://localhost:54321",
+    url: "https://test.supabase.co",
     serviceRoleKey: "test-service-key",
+    anonKey: "test-anon-key",
   },
   worker: {
     concurrency: 10,
