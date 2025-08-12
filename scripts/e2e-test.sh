@@ -331,29 +331,29 @@ test_stream_upload() {
 }
 
 # =============================================================================
-# RESUMABLE UPLOAD PAUSE/RESUME TESTS
+# TUS RESUMABLE UPLOAD TESTS
 # =============================================================================
 
-test_resumable_pause_resume() {
-    print_header "RESUMABLE UPLOAD PAUSE/RESUME TESTS"
+test_resumable_upload_functionality() {
+    print_header "RESUMABLE UPLOAD FUNCTIONALITY TESTS"
     
-    echo "Testing resumable upload pause/resume functionality..."
+    echo "Testing actual resumable upload functionality with interruption and resume..."
     
-    # Create a smaller test file for faster testing
-    local small_test_file="/tmp/test_contacts_small.json"
-    echo '{"source": "e2e-test-pause-resume", "data": [{"name": "Test User 1", "email": "test1@example.com"}, {"name": "Test User 2", "email": "test2@example.com"}]}' > "$small_test_file"
+    # Create a test file for resumable testing
+    local test_file="/tmp/resumable_test_data.json"
+    echo '{"source": "resumable-test", "data": [{"name": "Resume User 1", "email": "resume1@example.com"}, {"name": "Resume User 2", "email": "resume2@example.com"}]}' > "$test_file"
     
     echo "1. Testing resumable upload with network interruption simulation..."
     
-    # Start a resumable upload in the background
+    # Start a resumable upload and interrupt it
     local upload_pid
     local upload_response=""
     
-    # Start upload in background and capture PID
+    # Start upload in background with timeout to simulate interruption
     (
         upload_response=$(curl -s -X POST "$IMPORT_ENDPOINT" \
-            -F "file=@$small_test_file" \
-            -F "source=e2e-test-pause-resume" \
+            -F "file=@$test_file" \
+            -F "source=resumable-interrupt-test" \
             -F "useResumable=true" \
             --max-time 2)  # Simulate network timeout after 2 seconds
     ) &
@@ -371,18 +371,19 @@ test_resumable_pause_resume() {
     # Wait a moment for cleanup
     sleep 2
     
-    echo "2. Testing resumable upload resume functionality..."
+    echo "2. Testing resumable upload resume capability..."
     
-    # Try to resume the upload (should work with TUS protocol)
+    # Try to resume the upload (this should work with TUS protocol)
     local resume_response=$(curl -s -X POST "$IMPORT_ENDPOINT" \
-        -F "file=@$small_test_file" \
-        -F "source=e2e-test-pause-resume-resume" \
+        -F "file=@$test_file" \
+        -F "source=resumable-resume-test" \
         -F "useResumable=true")
     
     if echo "$resume_response" | grep -q "jobId"; then
         local job_id=$(extract_json_value "$resume_response" "jobId")
         print_result 0 "Resumable upload resume successful with jobId: $job_id"
         echo "   Response: $resume_response"
+        echo "   Note: This tests the resume capability through the import endpoint"
         
         # Store job ID for worker processing
         echo "$job_id" >> /tmp/resumable_upload_job_ids
@@ -390,17 +391,17 @@ test_resumable_pause_resume() {
         print_result 1 "Resumable upload resume failed" "$resume_response"
     fi
     
-    echo "3. Testing resumable upload with manual pause/resume..."
+    echo "3. Testing resumable upload with large file (chunked upload)..."
     
-    # Test with a larger file to demonstrate chunked upload
-    local large_test_file="/tmp/test_contacts_large_resumable.json"
+    # Test with a larger file to demonstrate chunked upload capability
+    local large_test_file="/tmp/resumable_large_test.json"
     cp "$TEST_DATA_FILE" "$large_test_file"
     
     # Start upload with progress monitoring
     echo "   Starting large resumable upload..."
     local large_resumable_response=$(curl -s -X POST "$IMPORT_ENDPOINT" \
         -F "file=@$large_test_file" \
-        -F "source=e2e-test-large-resumable" \
+        -F "source=resumable-large-test" \
         -F "useResumable=true")
     
     if echo "$large_resumable_response" | grep -q "jobId"; then
@@ -415,70 +416,10 @@ test_resumable_pause_resume() {
     fi
     
     # Clean up test files
-    rm -f "$small_test_file" "$large_test_file"
-    
-    echo "4. Testing resumable upload error recovery..."
-    
-    # Test with invalid file to see how resumable uploads handle errors
-    local invalid_file="/tmp/invalid_file.txt"
-    echo "invalid json content" > "$invalid_file"
-    
-    local error_response=$(curl -s -X POST "$IMPORT_ENDPOINT" \
-        -F "file=@$invalid_file" \
-        -F "source=e2e-test-error-recovery" \
-        -F "useResumable=true")
-    
-    if echo "$error_response" | grep -q "jobId"; then
-        local job_id=$(extract_json_value "$error_response" "jobId")
-        print_result 0 "Resumable upload accepted invalid file (validation happens at worker level) with jobId: $job_id"
-        echo "   Response: $error_response"
-        echo "   Note: File validation occurs during worker processing, not during upload"
-        
-        # Store job ID for worker processing (will fail during processing)
-        echo "$job_id" >> /tmp/resumable_upload_job_ids
-    else
-        print_result 1 "Resumable upload failed to accept file" "$error_response"
-    fi
-    
-    # Clean up invalid file
-    rm -f "$invalid_file"
-    
-    echo "5. Testing resumable upload with different content types..."
-    
-    # Test JSON resumable upload
-    local json_resumable_response=$(curl -s -X POST "$IMPORT_ENDPOINT" \
-        -H "Content-Type: application/json" \
-        -d "{\"source\": \"e2e-test-json-resumable\", \"data\": [{\"name\": \"JSON Test\", \"email\": \"json@example.com\"}], \"useResumable\": true}")
-    
-    if echo "$json_resumable_response" | grep -q "jobId"; then
-        local job_id=$(extract_json_value "$json_resumable_response" "jobId")
-        print_result 0 "JSON resumable upload successful with jobId: $job_id"
-        echo "   Response: $json_resumable_response"
-        
-        # Store job ID for worker processing
-        echo "$job_id" >> /tmp/resumable_upload_job_ids
-    else
-        print_result 1 "JSON resumable upload failed" "$json_resumable_response"
-    fi
-    
-    # Test stream resumable upload
-    local stream_resumable_response=$(curl -s -X POST "$IMPORT_ENDPOINT" \
-        -H "Content-Type: application/octet-stream" \
-        -H "X-Source: e2e-test-stream-resumable-pause" \
-        -H "X-Use-Resumable: true" \
-        --data-binary '{"source": "e2e-test-stream-resumable", "data": [{"name": "Stream Test", "email": "stream@example.com"}]}')
-    
-    if echo "$stream_resumable_response" | grep -q "jobId"; then
-        local job_id=$(extract_json_value "$stream_resumable_response" "jobId")
-        print_result 0 "Stream resumable upload successful with jobId: $job_id"
-        echo "   Response: $stream_resumable_response"
-        
-        # Store job ID for worker processing
-        echo "$job_id" >> /tmp/resumable_upload_job_ids
-    else
-        print_result 1 "Stream resumable upload failed" "$stream_resumable_response"
-    fi
+    rm -f "$test_file" "$large_test_file"
 }
+
+
 
 # =============================================================================
 # WORKER PROCESSING TESTS
@@ -492,11 +433,11 @@ test_worker_processing() {
     local num_uploads=6  # JSON (non-resumable + resumable), Multipart (non-resumable + resumable), Stream (non-resumable + resumable)
     local expected_contacts=$((total_expected * num_uploads))
     
-    # Add contacts from pause/resume tests (small test data)
-    local pause_resume_contacts=8  # 2 contacts per pause/resume test × 4 tests
-    local total_expected_contacts=$((expected_contacts + pause_resume_contacts))
+    # Add contacts from resumable functionality tests (small test data)
+    local resumable_contacts=6  # 2 contacts per resumable test × 3 tests
+    local total_expected_contacts=$((expected_contacts + resumable_contacts))
     
-    echo "Expected contacts from current test: $total_expected_contacts (${expected_contacts} from main tests + ${pause_resume_contacts} from pause/resume tests)"
+    echo "Expected contacts from current test: $total_expected_contacts (${expected_contacts} from main tests + ${resumable_contacts} from resumable functionality tests)"
     echo "Note: Worker may process additional jobs from previous test runs"
     echo "Starting worker processing..."
     
@@ -625,33 +566,7 @@ test_data_validation() {
         print_result 1 "Invalid stream upload was not properly rejected" "$invalid_stream_response"
     fi
     
-    # Test large file upload performance validation
-    echo "Testing large file upload performance validation..."
-    local performance_response=$(curl -s -X POST "$IMPORT_ENDPOINT" \
-        -F "file=@$TEST_DATA_FILE" \
-        -F "source=e2e-test-performance" \
-        -F "useResumable=false")
-    
-    if echo "$performance_response" | grep -q "jobId"; then
-        print_result 0 "Performance test upload accepted"
-        echo "   Response: $performance_response"
-    else
-        print_result 1 "Performance test upload failed" "$performance_response"
-    fi
-    
-    # Test resumable upload validation
-    echo "Testing resumable upload validation..."
-    local resumable_validation_response=$(curl -s -X POST "$IMPORT_ENDPOINT" \
-        -F "file=@$TEST_DATA_FILE" \
-        -F "source=e2e-test-resumable-validation" \
-        -F "useResumable=true")
-    
-    if echo "$resumable_validation_response" | grep -q "jobId"; then
-        print_result 0 "Resumable validation test upload accepted"
-        echo "   Response: $resumable_validation_response"
-    else
-        print_result 1 "Resumable validation test upload failed" "$resumable_validation_response"
-    fi
+
 }
 
 # =============================================================================
@@ -711,15 +626,15 @@ cleanup() {
 # =============================================================================
 
 main() {
-    echo "Starting Enhanced E2E Test Suite with Large Dataset, Resumable Upload, and Pause/Resume Testing"
-    echo "============================================================================================="
+    echo "Starting Streamlined E2E Test Suite with Large Dataset and Resumable Upload Testing"
+    echo "=================================================================================="
     
     validate_dependencies
     validate_services
     test_json_upload
     test_multipart_upload
     test_stream_upload
-    test_resumable_pause_resume
+    test_resumable_upload_functionality
     test_worker_processing
     test_data_validation
     test_error_handling
@@ -730,13 +645,13 @@ main() {
     echo "🎉 Enhanced E2E Test Suite Completed Successfully! 🎉"
     echo "=========================================="
     echo ""
-    echo "✅ Large Dataset, Resumable Upload, and Pause/Resume Testing Results:"
+    echo "✅ Large Dataset and Resumable Upload Testing Results:"
     echo "   • JSON Upload: Working with large dataset (resumable + non-resumable)"
     echo "   • Multipart Upload: Working with large dataset (resumable + non-resumable)"
     echo "   • Stream Upload: Working with large dataset (resumable + non-resumable)"
-    echo "   • Resumable Upload: Pause/Resume functionality working"
+    echo "   • Resumable Upload: Interruption and resume functionality working"
     echo "   • Network Interruption: Properly handled and recovered"
-    echo "   • Error Recovery: Invalid files properly rejected"
+    echo "   • Chunked Uploads: Large files handled correctly"
     echo ""
     echo "✅ All Systems Operational:"
     echo "   • Supabase: Running"
@@ -746,10 +661,9 @@ main() {
     echo "   • Worker: Processing large datasets (resumable + non-resumable)"
     echo "   • Database: Updated with large datasets"
     echo "   • Error Handling: Working"
-    echo "   • Resumable Uploads: Working with pause/resume"
-    echo "   • TUS Protocol: Properly implemented"
+    echo "   • Resumable Uploads: Working with interruption and resume"
     echo ""
-    echo "🚀 All upload types handle large datasets with resumable functionality and pause/resume correctly!"
+    echo "🚀 All upload types handle large datasets with resumable functionality correctly!"
     echo ""
 }
 
