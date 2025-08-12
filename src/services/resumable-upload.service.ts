@@ -8,17 +8,20 @@ export interface ResumableUploadOptions {
   file: File | Buffer;
   contentType?: string;
   metadata?: Record<string, any>;
+  onProgress?: (bytesUploaded: number, bytesTotal: number) => void;
 }
 
 export class ResumableUploadService {
   private getTusEndpoint(): string {
-    return config.env === "development" 
+    return config.env === "development"
       ? `${config.supabase.url}/storage/v1/upload/resumable`
-      : `https://${config.supabase.url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]}.storage.supabase.co/storage/v1/upload/resumable`;
+      : `https://${
+          config.supabase.url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]
+        }.storage.supabase.co/storage/v1/upload/resumable`;
   }
 
   async uploadFile(options: ResumableUploadOptions): Promise<string> {
-    const { fileName, file, contentType = config.upload.defaultContentType, metadata = {} } = options;
+    const { fileName, file, contentType = config.upload.defaultContentType, metadata = {}, onProgress } = options;
 
     return new Promise((resolve, reject) => {
       const upload = new tus.Upload(file, {
@@ -37,10 +40,16 @@ export class ResumableUploadService {
           cacheControl: config.upload.cacheControl,
           metadata: JSON.stringify(metadata),
         },
+
         chunkSize: config.upload.chunkSize,
         onError: (error: any) => {
           console.error(`Upload failed for ${fileName}:`, error);
           reject(error);
+        },
+        onProgress: (bytesUploaded: number, bytesTotal: number) => {
+          const percentage = ((bytesUploaded / bytesTotal) * 100).toFixed(2);
+          console.log(`${fileName}: ${bytesUploaded}/${bytesTotal} bytes (${percentage}%)`);
+          onProgress?.(bytesUploaded, bytesTotal);
         },
         onSuccess: () => {
           console.log(`Upload completed: ${fileName}`);
@@ -59,6 +68,7 @@ export class ResumableUploadService {
         console.log("Resuming from previous upload");
         upload.resumeFromPreviousUpload(previousUploads[0]);
       }
+
       upload.start();
     } catch (error) {
       console.error("Failed to start upload:", error);
@@ -66,13 +76,19 @@ export class ResumableUploadService {
     }
   }
 
-  async uploadJsonData(fileName: string, data: any, metadata?: Record<string, any>): Promise<string> {
+  async uploadJsonData(
+    fileName: string,
+    data: any,
+    metadata?: Record<string, any>,
+    onProgress?: (bytesUploaded: number, bytesTotal: number) => void
+  ): Promise<string> {
     return this.uploadFile({
       bucketName: STORAGE_BUCKETS.IMPORTS,
       fileName,
       file: Buffer.from(JSON.stringify(data), "utf-8"),
       contentType: CONTENT_TYPES.JSON,
       metadata,
+      onProgress,
     });
   }
 }
