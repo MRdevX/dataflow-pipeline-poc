@@ -6,6 +6,7 @@ import { z } from "zod";
 export interface ImportJobPayload {
   jobId: string;
   source: string;
+  fileName?: string;
 }
 
 export interface ImportTaskDependencies {
@@ -30,15 +31,29 @@ const importedContactsArraySchema = z.array(importedContactSchema).min(1);
 export class ImportTaskProcessor {
   constructor(private dependencies: ImportTaskDependencies) {}
 
-  async processImportJob(payload: ImportJobPayload, helpers: ImportTaskHelpers): Promise<void> {
-    const { jobId, source } = payload;
-    const fileName = `import-${jobId}.json`;
+  private async parseContent(content: string): Promise<any[]> {
+    const parsed = JSON.parse(content);
 
-    helpers.logger.info(`Processing import job ${jobId} from ${source}`);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+
+    if (parsed && typeof parsed === "object" && "data" in parsed) {
+      return parsed.data;
+    }
+
+    throw new Error("Invalid JSON format: expected array of contacts or import request structure");
+  }
+
+  async processImportJob(payload: ImportJobPayload, helpers: ImportTaskHelpers): Promise<void> {
+    const { jobId, source, fileName: providedFileName } = payload;
+    const fileName = providedFileName || `import-${jobId}.json`;
+
+    helpers.logger.info(`Processing import job ${jobId} from ${source} (file: ${fileName})`);
 
     try {
-      const jsonText = await this.dependencies.storageRepository.downloadFile(fileName);
-      const rawContacts = JSON.parse(jsonText);
+      const content = await this.dependencies.storageRepository.downloadFile(fileName);
+      const rawContacts = await this.parseContent(content);
 
       if (!Array.isArray(rawContacts)) {
         throw new Error("Invalid data format: expected array of contacts");
@@ -56,6 +71,7 @@ export class ImportTaskProcessor {
 
       try {
         await this.dependencies.storageRepository.deleteFile(fileName);
+        helpers.logger.info(`Cleaned up file: ${fileName}`);
       } catch (delErr) {
         helpers.logger.error(`Cleanup failed for ${fileName}: ${delErr}`);
       }

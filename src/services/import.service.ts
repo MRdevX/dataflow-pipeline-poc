@@ -105,12 +105,13 @@ export class ImportService {
 
   private async handleFileImport(file: File, source: string, jobId: string, useResumable: boolean): Promise<ImportResponse> {
     const buffer = await this.fileToBuffer(file);
+    const fileName = `import-${jobId}.json`;
 
     return this.uploadAndQueue({
       jobId,
       source,
       content: buffer,
-      fileName: `import-${jobId}-${file.name}`,
+      fileName,
       useResumable,
       contentType: file.type || "application/octet-stream",
       metadata: this.createMetadata({
@@ -130,12 +131,13 @@ export class ImportService {
     useResumable: boolean
   ): Promise<ImportResponse> {
     const buffer = await this.streamToBuffer(stream);
+    const fileName = `import-${jobId}.json`;
 
     return this.uploadAndQueue({
       jobId,
       source,
       content: buffer,
-      fileName: `import-${jobId}-stream.json`,
+      fileName,
       useResumable,
       metadata: this.createMetadata({
         jobId,
