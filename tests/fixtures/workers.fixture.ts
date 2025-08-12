@@ -1,9 +1,10 @@
 import { faker } from "@faker-js/faker";
 import type { ImportJobPayload, ImportTaskDependencies, ImportTaskHelpers } from "../../src/workers/tasks/import.task.js";
 import { vi } from "vitest";
+import { generateJobId } from "../../src/utils/general.utils.js";
 
 export const createMockImportJobPayload = (overrides: Partial<ImportJobPayload> = {}): ImportJobPayload => ({
-  jobId: faker.string.uuid(),
+  jobId: generateJobId(),
   source: faker.company.name(),
   ...overrides,
 });
@@ -27,11 +28,11 @@ export const createMockImportTaskHelpers = (): ImportTaskHelpers => ({
 
 export const sampleJobPayloads = {
   basic: {
-    jobId: "test-job-123",
+    jobId: generateJobId(),
     source: "Test Company",
   },
   withLongSource: {
-    jobId: "test-job-456",
+    jobId: generateJobId(),
     source: "Very Long Company Name That Exceeds Normal Limits",
   },
 };

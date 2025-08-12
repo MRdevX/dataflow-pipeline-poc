@@ -5,15 +5,12 @@ import { ResumableUploadService } from "./resumable-upload.service.js";
 import { STORAGE_BUCKETS, CONTENT_TYPES } from "../constants/storage.constants.js";
 import type { UploadRequest, UploadMetadata } from "../types/import.types.js";
 import { ImportError } from "../types/import.types.js";
+import { generateJobId } from "../utils/general.utils.js";
 
 const storageRepository = new StorageRepository();
 const resumableUploadService = new ResumableUploadService();
 
 export class ImportService {
-  private generateJobId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
-
   private createMetadata(baseMetadata: Partial<UploadMetadata>): Record<string, any> {
     return {
       ...baseMetadata,
@@ -46,7 +43,7 @@ export class ImportService {
   }
 
   async import(input: ImportRequest | File | ReadableStream, source: string, useResumable = false): Promise<ImportResponse> {
-    const jobId = this.generateJobId();
+    const jobId = generateJobId();
 
     try {
       if (this.isImportRequest(input)) {
