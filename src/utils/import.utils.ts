@@ -5,8 +5,10 @@ import { importRequestSchema } from "../validation/validation.schemas.js";
 const importService = new ImportService();
 
 export function detectContentType(contentType: string): ContentType {
-  if (contentType.includes("multipart/form-data")) return "multipart";
-  if (contentType.includes("application/json")) return "json";
+  const ct = (contentType || "").toLowerCase();
+  if (!ct) return "stream";
+  if (ct.includes("multipart/form-data")) return "multipart";
+  if (ct.includes("application/json")) return "json";
   return "stream";
 }
 
