@@ -12,33 +12,9 @@ export interface ResumableUploadOptions {
 
 export class ResumableUploadService {
   private getTusEndpoint(): string {
-    if (config.env === "development") {
-      return `${config.supabase.url}/storage/v1/upload/resumable`;
-    }
-
-    const projectId = config.supabase.url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1];
-    if (!projectId) {
-      throw new Error("Invalid Supabase URL format for production environment");
-    }
-
-    return `https://${projectId}.storage.supabase.co/storage/v1/upload/resumable`;
-  }
-
-  private createMetadata(bucketName: string, fileName: string, contentType: string, metadata: Record<string, any>) {
-    return {
-      bucketName,
-      objectName: fileName,
-      contentType,
-      cacheControl: config.upload.cacheControl,
-      metadata: JSON.stringify(metadata),
-    };
-  }
-
-  private createHeaders() {
-    return {
-      authorization: `Bearer ${config.supabase.serviceRoleKey}`,
-      "x-upsert": "true",
-    };
+    return config.env === "development" 
+      ? `${config.supabase.url}/storage/v1/upload/resumable`
+      : `https://${config.supabase.url.match(/https:\/\/([^.]+)\.supabase\.co/)?.[1]}.storage.supabase.co/storage/v1/upload/resumable`;
   }
 
   async uploadFile(options: ResumableUploadOptions): Promise<string> {
@@ -48,10 +24,19 @@ export class ResumableUploadService {
       const upload = new tus.Upload(file, {
         endpoint: this.getTusEndpoint(),
         retryDelays: config.upload.retryDelays,
-        headers: this.createHeaders(),
+        headers: {
+          authorization: `Bearer ${config.supabase.serviceRoleKey}`,
+          "x-upsert": "true",
+        },
         uploadDataDuringCreation: true,
         removeFingerprintOnSuccess: true,
-        metadata: this.createMetadata(options.bucketName, fileName, contentType, metadata),
+        metadata: {
+          bucketName: options.bucketName,
+          objectName: fileName,
+          contentType,
+          cacheControl: config.upload.cacheControl,
+          metadata: JSON.stringify(metadata),
+        },
         chunkSize: config.upload.chunkSize,
         onError: (error: any) => {
           console.error(`Upload failed for ${fileName}:`, error);
@@ -82,12 +67,10 @@ export class ResumableUploadService {
   }
 
   async uploadJsonData(fileName: string, data: any, metadata?: Record<string, any>): Promise<string> {
-    const buffer = Buffer.from(JSON.stringify(data), "utf-8");
-
     return this.uploadFile({
       bucketName: STORAGE_BUCKETS.IMPORTS,
       fileName,
-      file: buffer,
+      file: Buffer.from(JSON.stringify(data), "utf-8"),
       contentType: CONTENT_TYPES.JSON,
       metadata,
     });

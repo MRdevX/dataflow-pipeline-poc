@@ -3,115 +3,171 @@ import { StorageRepository } from "../repositories/storage.repository.js";
 import { addJob } from "../workers/worker-utils.js";
 import { ResumableUploadService } from "./resumable-upload.service.js";
 import { STORAGE_BUCKETS, CONTENT_TYPES } from "../constants/storage.constants.js";
+import type { UploadRequest, UploadMetadata } from "../types/import.types.js";
+import { ImportError } from "../types/import.types.js";
 
 const storageRepository = new StorageRepository();
 const resumableUploadService = new ResumableUploadService();
-
-interface UploadContext {
-  jobId: string;
-  source: string;
-  fileName: string;
-  useResumable: boolean;
-  contentType?: string;
-  metadata?: Record<string, any>;
-}
 
 export class ImportService {
   private generateJobId(): string {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private async uploadContent(context: UploadContext, content: Buffer | string): Promise<void> {
-    const { jobId, source, fileName, useResumable, contentType = CONTENT_TYPES.JSON, metadata = {} } = context;
+  private createMetadata(baseMetadata: Partial<UploadMetadata>): Record<string, any> {
+    return {
+      ...baseMetadata,
+      timestamp: baseMetadata.timestamp || new Date().toISOString(),
+    };
+  }
 
-    if (useResumable) {
-      await resumableUploadService.uploadFile({
-        bucketName: STORAGE_BUCKETS.IMPORTS,
-        fileName,
-        file: typeof content === "string" ? Buffer.from(content) : content,
-        contentType,
-        metadata: { ...metadata, jobId, source },
-      });
-    } else {
-      const data = typeof content === "string" ? content : content.toString("utf8");
-      await storageRepository.uploadFile(fileName, data);
+  private async uploadAndQueue(request: UploadRequest): Promise<ImportResponse> {
+    const { jobId, source, content, fileName, useResumable, contentType = CONTENT_TYPES.JSON, metadata = {} } = request;
+
+    try {
+      if (useResumable) {
+        await resumableUploadService.uploadFile({
+          bucketName: STORAGE_BUCKETS.IMPORTS,
+          fileName,
+          file: typeof content === "string" ? Buffer.from(content) : content,
+          contentType,
+          metadata: { ...metadata, jobId, source },
+        });
+      } else {
+        const data = typeof content === "string" ? content : content.toString("utf8");
+        await storageRepository.uploadFile(fileName, data);
+      }
+
+      await addJob("processImportJob", { jobId, source, fileName });
+      return { jobId };
+    } catch (error) {
+      throw new ImportError(`Upload failed: ${error instanceof Error ? error.message : "Unknown error"}`, "UPLOAD_FAILED");
     }
   }
 
-  private async queueJob(jobId: string, source: string, fileName: string): Promise<void> {
-    await addJob("processImportJob", { jobId, source, fileName });
-  }
+  async import(input: ImportRequest | File | ReadableStream, source: string, useResumable = false): Promise<ImportResponse> {
+    const jobId = this.generateJobId();
 
-  private async processUpload(context: UploadContext, content: Buffer | string): Promise<ImportResponse> {
-    await this.uploadContent(context, content);
-    await this.queueJob(context.jobId, context.source, context.fileName);
-    return { jobId: context.jobId };
+    try {
+      if (this.isImportRequest(input)) {
+        return this.handleJsonImport(input, jobId, useResumable);
+      }
+
+      if (this.isFile(input)) {
+        return this.handleFileImport(input, source, jobId, useResumable);
+      }
+
+      if (this.isReadableStream(input)) {
+        return this.handleStreamImport(input, source, jobId, useResumable);
+      }
+
+      throw new ImportError("Unsupported input type", "INVALID_INPUT");
+    } catch (error) {
+      if (error instanceof ImportError) {
+        throw error;
+      }
+      throw new ImportError(`Import failed: ${error instanceof Error ? error.message : "Unknown error"}`, "IMPORT_FAILED");
+    }
   }
 
   async processImport(request: ImportRequest, useResumable = false): Promise<ImportResponse> {
-    const jobId = this.generateJobId();
-    const context: UploadContext = {
-      jobId,
-      source: request.source,
-      fileName: `import-${jobId}.json`,
-      useResumable,
-    };
-
-    if (useResumable) {
-      await resumableUploadService.uploadJsonData(context.fileName, request.data, {
-        jobId,
-        source: request.source,
-      });
-    } else {
-      await this.uploadContent(context, JSON.stringify(request.data));
-    }
-
-    await this.queueJob(jobId, request.source, context.fileName);
-    return { jobId };
+    return this.import(request, request.source, useResumable);
   }
 
   async processFileUpload(file: File, source: string, useResumable = false): Promise<ImportResponse> {
-    const jobId = this.generateJobId();
-    const buffer = await this.fileToBuffer(file);
-
-    const context: UploadContext = {
-      jobId,
-      source,
-      fileName: `import-${jobId}-${file.name}`,
-      useResumable,
-      contentType: file.type || "application/octet-stream",
-      metadata: {
-        originalName: file.name,
-        size: file.size,
-        uploadType: "file",
-      },
-    };
-
-    return this.processUpload(context, buffer);
+    return this.import(file, source, useResumable);
   }
 
   async processStreamUpload(bodyStream: ReadableStream, source: string, useResumable = false): Promise<ImportResponse> {
-    const jobId = this.generateJobId();
-    const buffer = await this.streamToBuffer(bodyStream);
+    return this.import(bodyStream, source, useResumable);
+  }
 
-    const context: UploadContext = {
+  private async handleJsonImport(request: ImportRequest, jobId: string, useResumable: boolean): Promise<ImportResponse> {
+    const fileName = `import-${jobId}.json`;
+
+    if (useResumable) {
+      await resumableUploadService.uploadJsonData(fileName, request.data, {
+        jobId,
+        source: request.source,
+      });
+      await addJob("processImportJob", { jobId, source: request.source, fileName });
+      return { jobId };
+    }
+
+    return this.uploadAndQueue({
+      jobId,
+      source: request.source,
+      content: JSON.stringify(request.data),
+      fileName,
+      useResumable,
+    });
+  }
+
+  private async handleFileImport(file: File, source: string, jobId: string, useResumable: boolean): Promise<ImportResponse> {
+    const buffer = await this.fileToBuffer(file);
+
+    return this.uploadAndQueue({
       jobId,
       source,
+      content: buffer,
+      fileName: `import-${jobId}-${file.name}`,
+      useResumable,
+      contentType: file.type || "application/octet-stream",
+      metadata: this.createMetadata({
+        jobId,
+        source,
+        uploadType: "file",
+        originalName: file.name,
+        size: file.size,
+      }),
+    });
+  }
+
+  private async handleStreamImport(
+    stream: ReadableStream,
+    source: string,
+    jobId: string,
+    useResumable: boolean
+  ): Promise<ImportResponse> {
+    const buffer = await this.streamToBuffer(stream);
+
+    return this.uploadAndQueue({
+      jobId,
+      source,
+      content: buffer,
       fileName: `import-${jobId}-stream.json`,
       useResumable,
-      metadata: {
-        size: buffer.length,
+      metadata: this.createMetadata({
+        jobId,
+        source,
         uploadType: "stream",
-        timestamp: new Date().toISOString(),
-      },
-    };
+        size: buffer.length,
+      }),
+    });
+  }
 
-    return this.processUpload(context, buffer);
+  private isImportRequest(input: any): input is ImportRequest {
+    return input && typeof input === "object" && "source" in input && "data" in input;
+  }
+
+  private isFile(input: any): input is File {
+    return input instanceof File;
+  }
+
+  private isReadableStream(input: any): input is ReadableStream {
+    return input && typeof input.getReader === "function";
   }
 
   private async fileToBuffer(file: File): Promise<Buffer> {
-    const arrayBuffer = await file.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      return Buffer.from(arrayBuffer);
+    } catch (error) {
+      throw new ImportError(
+        `Failed to read file: ${error instanceof Error ? error.message : "Unknown error"}`,
+        "FILE_READ_ERROR"
+      );
+    }
   }
 
   private async streamToBuffer(stream: ReadableStream): Promise<Buffer> {
@@ -124,6 +180,11 @@ export class ImportService {
         if (done) break;
         chunks.push(value);
       }
+    } catch (error) {
+      throw new ImportError(
+        `Failed to read stream: ${error instanceof Error ? error.message : "Unknown error"}`,
+        "STREAM_READ_ERROR"
+      );
     } finally {
       reader.releaseLock();
     }
