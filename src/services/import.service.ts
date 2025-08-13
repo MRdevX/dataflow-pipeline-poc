@@ -6,6 +6,7 @@ import { STORAGE_BUCKETS, CONTENT_TYPES } from "../constants/storage.constants.j
 import type { UploadRequest, UploadMetadata } from "../types/import.types.js";
 import { ImportError } from "../types/import.types.js";
 import { generateJobId } from "../utils/general.utils.js";
+import { withUploadMetrics } from "../utils/service-metrics.js";
 
 const storageRepository = new StorageRepository();
 const resumableUploadService = new ResumableUploadService();
@@ -23,16 +24,32 @@ export class ImportService {
 
     try {
       if (useResumable) {
-        await resumableUploadService.uploadFile({
-          bucketName: STORAGE_BUCKETS.IMPORTS,
-          fileName,
-          file: typeof content === "string" ? Buffer.from(content) : content,
-          contentType,
-          metadata: { ...metadata, jobId, source },
-        });
+        const uploadWithMetrics = withUploadMetrics(
+          async () => {
+            await resumableUploadService.uploadFile({
+              bucketName: STORAGE_BUCKETS.IMPORTS,
+              fileName,
+              file: typeof content === "string" ? Buffer.from(content) : content,
+              contentType,
+              metadata: { ...metadata, jobId, source },
+            });
+          },
+          "resumable",
+          STORAGE_BUCKETS.IMPORTS
+        );
+
+        await uploadWithMetrics();
       } else {
-        const data = typeof content === "string" ? content : content.toString("utf8");
-        await storageRepository.uploadFile(fileName, data);
+        const uploadWithMetrics = withUploadMetrics(
+          async () => {
+            const data = typeof content === "string" ? content : content.toString("utf8");
+            await storageRepository.uploadFile(fileName, data);
+          },
+          "direct",
+          STORAGE_BUCKETS.IMPORTS
+        );
+
+        await uploadWithMetrics();
       }
 
       await addJob("processImportJob", { jobId, source, fileName });
