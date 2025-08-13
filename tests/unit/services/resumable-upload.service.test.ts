@@ -20,6 +20,9 @@ vi.mock("../../../src/config/index.js", () => ({
       cacheControl: "3600",
       chunkSize: 6 * 1024 * 1024,
     },
+    metrics: {
+      enabled: false,
+    },
   },
 }));
 

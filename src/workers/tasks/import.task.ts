@@ -2,6 +2,8 @@ import type { Task } from "graphile-worker";
 import { ContactRepository } from "../../repositories/contact.repository.js";
 import { StorageRepository } from "../../repositories/storage.repository.js";
 import { z } from "zod";
+import { withJobMetrics } from "../../utils/service-metrics.js";
+import { metrics } from "../../utils/metrics.js";
 
 export interface ImportJobPayload {
   jobId: string;
@@ -51,36 +53,45 @@ export class ImportTaskProcessor {
 
     helpers.logger.info(`Processing import job ${jobId} from ${source} (file: ${fileName})`);
 
-    try {
-      const content = await this.dependencies.storageRepository.downloadFile(fileName);
-      const rawContacts = await this.parseContent(content);
-
-      if (!Array.isArray(rawContacts)) {
-        throw new Error("Invalid data format: expected array of contacts");
-      }
-
-      const validatedContacts = importedContactsArraySchema.parse(rawContacts);
-
-      const contactsToInsert = validatedContacts.map((contact) => ({
-        name: contact.name,
-        email: contact.email,
-        source,
-      }));
-
-      await this.dependencies.contactRepository.createMany(contactsToInsert);
-
+    const processWithMetrics = withJobMetrics(async (): Promise<void> => {
       try {
-        await this.dependencies.storageRepository.deleteFile(fileName);
-        helpers.logger.info(`Cleaned up file: ${fileName}`);
-      } catch (delErr) {
-        helpers.logger.error(`Cleanup failed for ${fileName}: ${delErr}`);
-      }
+        const content = await this.dependencies.storageRepository.downloadFile(fileName);
+        const rawContacts = await this.parseContent(content);
 
-      helpers.logger.info(`Successfully processed ${contactsToInsert.length} contacts for job ${jobId}`);
-    } catch (error) {
-      helpers.logger.error(`Failed to process import job ${jobId}: ${error}`);
-      throw error;
-    }
+        if (!Array.isArray(rawContacts)) {
+          throw new Error("Invalid data format: expected array of contacts");
+        }
+
+        const validatedContacts = importedContactsArraySchema.parse(rawContacts);
+
+        const contactsToInsert = validatedContacts.map((contact) => ({
+          name: contact.name,
+          email: contact.email,
+          source,
+        }));
+
+        await this.dependencies.contactRepository.createMany(contactsToInsert);
+
+        metrics.recordContactsImported(source, contactsToInsert.length);
+
+        try {
+          await this.dependencies.storageRepository.deleteFile(fileName);
+          helpers.logger.info(`Cleaned up file: ${fileName}`);
+        } catch (delErr) {
+          helpers.logger.error(`Cleanup failed for ${fileName}: ${delErr}`);
+        }
+
+        helpers.logger.info(`Successfully processed ${contactsToInsert.length} contacts for job ${jobId}`);
+      } catch (error) {
+        helpers.logger.error(`Failed to process import job ${jobId}: ${error}`);
+
+        metrics.recordJob(source, "failed", undefined, error instanceof Error ? error.constructor.name : "Unknown");
+
+        throw error;
+      }
+    }, source);
+
+    return processWithMetrics();
   }
 }
 

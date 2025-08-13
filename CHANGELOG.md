@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/MRdevX/take-home-backend/compare/v1.2.0...v1.3.0) (2025-08-13)
+
+
+### Features
+
+* **api:** add all supported import types to Postman collection ([0427644](https://github.com/MRdevX/take-home-backend/commit/0427644d12a31a97c6efdde8bc7f6450c76bb3a8))
+* **docker:** add Docker configuration for Prometheus and Grafana monitoring setup ([6f003f0](https://github.com/MRdevX/take-home-backend/commit/6f003f0ee8632a3e8e14919843409f32426730a8))
+* **metrics:** integrate additional Prometheus metrics ([ea71cda](https://github.com/MRdevX/take-home-backend/commit/ea71cdaf04896c9a3017b1be9a0773cecf87c06c))
+* **tests:** add missing tests for upload scenarios ([9b2755b](https://github.com/MRdevX/take-home-backend/commit/9b2755bad77195149f1c634971a9de1c0408394f))
+
+
+### Bug Fixes
+
+* **import.utils:** handle empty content type apply use early returns ([081743d](https://github.com/MRdevX/take-home-backend/commit/081743d9fa5cde951407e3135bbd04092218231a))
+
 ## [1.2.0](https://github.com/MRdevX/take-home-backend/compare/v1.1.0...v1.2.0) (2025-08-12)
 
 
