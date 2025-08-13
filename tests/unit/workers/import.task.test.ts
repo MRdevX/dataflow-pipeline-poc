@@ -44,7 +44,7 @@ describe("ImportTaskProcessor", () => {
       ]);
 
       expect(mockHelpers.logger.info).toHaveBeenCalledWith(
-        `Processing import job ${mockPayload.jobId} from ${mockPayload.source}`
+        `Processing import job ${mockPayload.jobId} from ${mockPayload.source} (file: import-${mockPayload.jobId}.json)`
       );
       expect(mockHelpers.logger.info).toHaveBeenCalledWith(`Successfully processed 3 contacts for job ${mockPayload.jobId}`);
     });
@@ -97,7 +97,7 @@ describe("ImportTaskProcessor", () => {
       (mockDependencies.storageRepository.downloadFile as any).mockResolvedValue(mockJsonData);
 
       await expect(processor.processImportJob(mockPayload, mockHelpers)).rejects.toThrow(
-        "Invalid data format: expected array of contacts"
+        "Invalid JSON format: expected array of contacts or import request structure"
       );
 
       expect(mockHelpers.logger.error).toHaveBeenCalledWith(
@@ -173,6 +173,22 @@ describe("ImportTaskProcessor", () => {
       const expectedFileName = `import-${mockPayload.jobId}.json`;
       expect(mockDependencies.storageRepository.downloadFile).toHaveBeenCalledWith(expectedFileName);
       expect(mockDependencies.storageRepository.deleteFile).toHaveBeenCalledWith(expectedFileName);
+    });
+
+    it("should handle custom file name from payload", async () => {
+      const mockContacts = [{ name: "John Doe", email: "john@example.com" }];
+      const mockJsonData = JSON.stringify(mockContacts);
+      const customFileName = "custom-import-file.json";
+      const payloadWithFileName = { ...mockPayload, fileName: customFileName };
+
+      (mockDependencies.storageRepository.downloadFile as any).mockResolvedValue(mockJsonData);
+      (mockDependencies.contactRepository.createMany as any).mockResolvedValue([]);
+      (mockDependencies.storageRepository.deleteFile as any).mockResolvedValue(undefined);
+
+      await processor.processImportJob(payloadWithFileName, mockHelpers);
+
+      expect(mockDependencies.storageRepository.downloadFile).toHaveBeenCalledWith(customFileName);
+      expect(mockDependencies.storageRepository.deleteFile).toHaveBeenCalledWith(customFileName);
     });
   });
 });

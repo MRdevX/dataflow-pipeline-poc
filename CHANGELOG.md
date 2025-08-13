@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/MRdevX/take-home-backend/compare/v1.1.0...v1.2.0) (2025-08-12)
+
+
+### Features
+
+* **import:** enhance error handling and validation ([5621cb1](https://github.com/MRdevX/take-home-backend/commit/5621cb17e5feaf0dc77b56d2320e703bbecec288))
+* **import:** optimize imports by adding file and stream upload endpoints ([d2b5719](https://github.com/MRdevX/take-home-backend/commit/d2b5719de7b930193110b2f1dffc694ec93376e9))
+* **import:** refactor and enhance import routes and services ([0fa59ee](https://github.com/MRdevX/take-home-backend/commit/0fa59ee08eb9eceb35cb0e35dffb01cf8c865fd1))
+* **tests:** add missing tests & enhance tests structure ([8d2bc78](https://github.com/MRdevX/take-home-backend/commit/8d2bc78d4297bb48e67f605de1b41340595e6010))
+* **tests:** add resumable upload pause/resume tests to E2E suite ([a058a96](https://github.com/MRdevX/take-home-backend/commit/a058a96d021a0ecc5e3bbdbaf4396c836ae87f7a))
+* **tests:** enhance E2E test suite with large dataset and resumable uploads ([0fa11ca](https://github.com/MRdevX/take-home-backend/commit/0fa11ca2de0fe592635b20c7007c0aa9bf8ea92c))
+* **tests:** implement test tracking and reporting in E2E suite ([2e808c4](https://github.com/MRdevX/take-home-backend/commit/2e808c498d0d6d97bc7936dc648f042ca633f524))
+* **upload:** improve resumable uploads tracking ([a3975cc](https://github.com/MRdevX/take-home-backend/commit/a3975cc49289b4aa4a601d318ba42111290fea4d))
+
+
+### Bug Fixes
+
+* **import:** decouple cleanup failure from job success ([6b08459](https://github.com/MRdevX/take-home-backend/commit/6b08459d9d032609b306b1e488fcf221afd4299d))
+
 ## 1.1.0 (2025-08-11)
 
 

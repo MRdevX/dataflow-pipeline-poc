@@ -1,28 +1,31 @@
-import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { ImportService } from "../services/import.service.js";
-import { importRequestSchema } from "../validation/validation.schemas.js";
+import { detectContentType, createHandler } from "../utils/import.utils.js";
 
 const router = new Hono();
-const importService = new ImportService();
 
-router.post("/", zValidator("json", importRequestSchema), async (c) => {
-	const validatedData = c.req.valid("json");
+router.post("/", async (c) => {
+  const contentTypeHeader = c.req.header("Content-Type") || "";
+  const contentType = detectContentType(contentTypeHeader);
+  const handler = createHandler(contentType);
 
-	const request = {
-		source: validatedData.source,
-		data: validatedData.data,
-	};
+  try {
+    const result = await handler(c);
 
-	const response = await importService.processImport(
-		request,
-		validatedData.useResumable,
-	);
+    if ("error" in result) {
+      return c.json(
+        {
+          error: result.error,
+          ...(result.issues && { issues: result.issues }),
+        },
+        result.status
+      );
+    }
 
-	console.log(
-		`Import job created: ${response.jobId} (resumable: ${validatedData.useResumable})`,
-	);
-	return c.json(response, 200);
+    return c.json(result.response, result.status);
+  } catch (error) {
+    console.error("Import error:", error);
+    return c.json({ error: "Import failed" }, 500);
+  }
 });
 
 export default router;
