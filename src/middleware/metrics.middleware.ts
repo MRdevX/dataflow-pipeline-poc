@@ -8,6 +8,8 @@ export function setupMetrics(app: Hono) {
 
   const { printMetrics, registerMetrics } = prometheus();
 
+  app.use("*", registerMetrics);
+
   app.use("*", async (c, next) => {
     const startTime = Date.now();
     const method = c.req.method;
@@ -17,14 +19,15 @@ export function setupMetrics(app: Hono) {
     try {
       await next();
       const duration = (Date.now() - startTime) / 1000;
+
       metrics.recordRequest(method, contentType, source, c.res.status, duration);
     } catch (error) {
       const duration = (Date.now() - startTime) / 1000;
+
       metrics.recordRequest(method, contentType, source, 500, duration);
       throw error;
     }
   });
 
-  app.use("*", registerMetrics);
   app.get("/metrics", printMetrics);
 }
