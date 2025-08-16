@@ -1,72 +1,79 @@
-# Take-Home Exercise
+# DataFlow Pipeline
 
-## Task: Build an Import Pipeline Using Hono + Supabase + Graphile Worker
+A proof-of-concept data import pipeline demonstrating modern backend development practices with **Hono**, **Supabase**, and **Graphile Worker**.
 
-### Overview
+## 🚀 Features
 
-Build a minimal backend system using **Hono** (for the API) and **Supabase** (for storage and database) that can:
+- **Multi-format Imports**: JSON, file uploads, and streaming data
+- **Resumable Uploads**: TUS protocol for large files
+- **Background Processing**: Async job processing with Graphile Worker
+- **Comprehensive Validation**: Zod schema validation with detailed error reporting
+- **Monitoring**: Prometheus metrics and health checks
+- **Testing**: Unit, integration, and E2E test suites
 
-1. Accept **large JSON data** via an API endpoint
-2. Offload the data to **Supabase Storage**
-3. Run a **worker** that downloads, parses, and imports the data into a `contacts` table
+## 🏗️ Architecture
 
-## Quick Start
+```
+API (Hono) → Storage (Supabase) → Worker (Graphile) → Database (PostgreSQL)
+     ↓              ↓                    ↓
+Validation    File Storage         Data Processing
+   (Zod)      (Buckets)           (Contacts Table)
+```
+
+## 📋 API Reference
+
+### `POST /import`
+
+**JSON Payload:**
+
+```json
+{
+  "source": "crm-tool-x",
+  "data": [{ "name": "Alice", "email": "alice@example.com" }],
+  "useResumable": false
+}
+```
+
+**File Upload:** `multipart/form-data` with fields: `file`, `source`, `useResumable`
+
+**Stream Upload:** Headers `X-Source`, `X-Use-Resumable` with raw data body
+
+**Response:** `{ "jobId": "import-123" }`
+
+### `GET /health` - Health check
+
+### `GET /metrics` - Prometheus metrics
+
+## 🛠️ Quick Start
 
 ```bash
-# 1. Install dependencies
 pnpm install
-
-# 2. Start Supabase locally
 pnpm run supabase:start
-
-# 3. Install graphile-worker
 pnpm run graphile-worker:install
-
-# 4. Start the api-service in watch mode
 pnpm run dev
-
-# 5. Run the e2e script
 pnpm run e2e
 ```
 
-The E2E script will:
-- Check Supabase is running
-- Check the the API service is running
-- Make a sample import request
-- Run the worker to process the job
+## 🧪 Testing
 
-Its here to help you see the e2e flow. Of course, you are free to run individual commands!
+```bash
+pnpm test                    # All tests
+pnpm run test:unit          # Unit tests
+pnpm run test:integration   # Integration tests
+pnpm run test:coverage      # With coverage
+```
 
-## Requirements
+## 🔧 Configuration
 
-### 1. **API: `POST /import`**
+| Variable                    | Description                 | Default  |
+| --------------------------- | --------------------------- | -------- |
+| `SUPABASE_URL`              | Supabase project URL        | Required |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key            | Required |
+| `DATABASE_URL`              | PostgreSQL connection       | Required |
+| `ENABLE_METRICS`            | Prometheus metrics          | `true`   |
+| `UPLOAD_CHUNK_SIZE`         | Resumable upload chunk size | `6MB`    |
 
-**Stack:** [Hono](https://hono.dev/) (TypeScript)
-
-**Behavior:**
-- Accepts a JSON payload:
-  ```json
-  {
-    "source": "crm-tool-x",
-    "data": [ { "name": "Alice", "email": "alice@example.com" }, ... ]
-  }
-  ```
-- Uploads the full `data` array to **Supabase Storage**, e.g. `imports/{jobId}.json`
-- Queues a job using **Graphile Worker**
-- Responds with:
-  ```json
-  { "jobId": "import-123" }
-  ```
-
-### 2. **Worker: Graphile Worker with runOnce**
-
-**Stack:** Node.js + `@supabase/supabase-js` + `graphile-worker`
-
-**Behavior:**
-- Uses [Graphile Worker](https://github.com/graphile/worker)
-- **Inserts contacts** into Supabase
-
-### 3. **Database Schema: `contacts` Table**
+## 📊 Database Schema
 
 ```sql
 CREATE TABLE contacts (
@@ -78,32 +85,73 @@ CREATE TABLE contacts (
 );
 ```
 
-## What We're Looking For
+## 🔄 Processing Pipeline
 
-- Support for large payloads + large scale
-- Efficient use of resources
-- Maintainable code
-- Use of Supabase (Storage + PostgREST)
+1. **Import Request** → Content type detection
+2. **File Storage** → Supabase bucket upload
+3. **Job Queue** → Graphile Worker job creation
+4. **Background Processing** → Download, validate, insert
+5. **Cleanup** → Automatic file deletion
 
-## What We're Not Looking For
+**Worker Config:** 10 concurrent jobs, 500ms poll interval
 
-- Authentication
-- Progress reporting
+## 🏆 Best Practices Demonstrated
 
-## Bonus Features (Optional)
+### **Architecture**
 
-- Add Prometheus metrics
-- Write unit tests for your implementation
-- Add data validation for contacts
+- Separation of concerns (routes, services, repositories)
+- Dependency injection patterns
+- Repository and service layer patterns
+- Type-safe configuration with Zod validation
 
-## Troubleshooting
+### **Quality & Reliability**
 
-- text us! We are here to help.
+- Comprehensive error handling with custom error classes
+- Input validation with detailed error reporting
+- Graceful shutdown and resource cleanup
+- Health monitoring and structured logging
 
-## Interesting Links
-- [Graphile Worker](https://worker.graphile.org/)
-- [Resumable Uploads](https://supabase.com/docs/guides/storage/uploads/resumable-uploads)
-- [Creating Buckets](https://supabase.com/docs/guides/storage/buckets/creating-buckets?queryGroups=language&language=sql)
+### **Development Experience**
 
+- Hot reloading development server
+- Comprehensive test coverage (unit, integration, E2E)
+- Code formatting with Biome
+- Conventional commits and changelog
 
-Good luck! 🚀
+## 📁 Project Structure
+
+```
+src/
+├── app.ts              # Application setup
+├── config/             # Configuration management
+├── middleware/         # Hono middleware
+├── models/             # Data models
+├── repositories/       # Data access layer
+├── routes/             # API handlers
+├── services/           # Business logic
+├── types/              # TypeScript types
+├── utils/              # Utilities
+├── validation/         # Schema validation
+└── workers/            # Background processing
+```
+
+## ⚠️ Important Note
+
+This is a **proof-of-concept demonstration** for learning purposes. Not intended for production use.
+
+## 🤝 Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Add tests for new functionality
+3. Ensure all tests pass
+4. Submit a pull request
+
+## 📄 License
+
+MIT License
+
+---
+
+Built with ❤️ using Hono, Supabase, and Graphile Worker

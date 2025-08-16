@@ -1,8 +1,8 @@
 {
-  "name": "take-home-backend",
+  "name": "dataflow-pipeline",
   "type": "module",
   "version": "1.2.0",
-  "description": "Take-home exercise: Import Pipeline with Hono + Supabase",
+  "description": "A proof-of-concept data import pipeline system built with Hono, Supabase, and Graphile Worker",
   "main": "dist/server.js",
   "scripts": {
     "dev": "dotenv -- tsx watch src/server.ts",
