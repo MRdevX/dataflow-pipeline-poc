@@ -1,9 +1,13 @@
 {
-  "name": "dataflow-pipeline",
+  "name": "dataflow-pipeline-poc",
   "type": "module",
   "version": "1.2.0",
   "description": "A proof-of-concept data import pipeline system built with Hono, Supabase, and Graphile Worker",
   "main": "dist/server.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MRdevX/dataflow-pipeline-poc"
+  },
   "scripts": {
     "dev": "dotenv -- tsx watch src/server.ts",
     "supabase:start": "supabase start",
